@@ -1,132 +1,272 @@
-import os
-import numpy as np
+import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
-from keras.applications.vgg16 import VGG16
-from keras.layers import GlobalAveragePooling2D, Dense, Dropout
+from keras.applications import MobileNetV2
+from keras.layers import Dense, GlobalAveragePooling2D, Dropout, BatchNormalization, Activation, Multiply
 from keras.models import Model
 from keras.optimizers import Adam, SGD
-from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
-import tensorflow as tf
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+import matplotlib.pyplot as plt
+import os
+import time
+from keras import backend as K
 
-# Ensure TensorFlow uses the GPU
+# Configure GPU memory growth to avoid memory issues
 physical_devices = tf.config.list_physical_devices('GPU')
 if physical_devices:
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
-    print("GPU is available and will be used for training.")
+    print("GPU available, configuring TensorFlow...")
+    for device in physical_devices:
+        tf.config.experimental.set_memory_growth(device, True)
+    print(f"Using GPU: {physical_devices}")
 else:
-    print("GPU is not available. Training will use the CPU.")
+    print("No GPU found, using CPU. This will be slow for training deep learning models.")
 
+# Parameters
+img_size = 48
+batch_size = 64  # Increase if you have enough GPU memory
+epochs = 50
+learning_rate = 0.001
+data_dir = r'C:\Users\weioo\OneDrive - UNIVERSITY UTARA MALAYSIA\Desktop\FYP-Face-Emotion-Recognition-System-V3-\FER dataset\train'
 # -------------------------------
-# 1. Set Paths and Parameters
+# 1. Enhanced Data Augmentation
 # -------------------------------
-# Use raw strings (prefix with r) for Windows paths.
-train_dir = r"C:\Users\weioo\Downloads\Facial_Emotion_Dataset-main\Facial_Emotion_Dataset-main\train_dir"
-valid_dir = r"C:\Users\weioo\Downloads\Facial_Emotion_Dataset-main\Facial_Emotion_Dataset-main\test_dir"
-
-img_height, img_width = 224, 224
-batch_size = 32
-
-# -------------------------------
-# 2. Data Augmentation
-# -------------------------------
-# For training, we apply several augmentations to boost dataset diversity.
 train_datagen = ImageDataGenerator(
     rescale=1./255,
     rotation_range=20,
     width_shift_range=0.2,
     height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
     horizontal_flip=True,
-    fill_mode='nearest'
+    fill_mode='nearest',
+    brightness_range=[0.8, 1.2],
+    validation_split=0.2
 )
 
-# For validation, only rescale.
-valid_datagen = ImageDataGenerator(rescale=1./255)
+valid_datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2
+)
 
-# Create generators that read images from the directories.
+# Load data
 train_generator = train_datagen.flow_from_directory(
-    train_dir,
-    target_size=(img_height, img_width),
+    data_dir,
+    target_size=(img_size, img_size),
+    color_mode='grayscale',
     batch_size=batch_size,
-    class_mode='categorical'
+    class_mode='categorical',
+    subset='training'
 )
 
 valid_generator = valid_datagen.flow_from_directory(
-    valid_dir,
-    target_size=(img_height, img_width),
+    data_dir,
+    target_size=(img_size, img_size),
+    color_mode='grayscale',
     batch_size=batch_size,
-    class_mode='categorical'
+    class_mode='categorical',
+    subset='validation'
 )
 
-# -------------------------------
-# 3. Model Definition and Initial Training
-# -------------------------------
-# Use VGG16 as the base model, excluding its top layers.
-base_model = VGG16(weights='imagenet', include_top=False,
-                   input_shape=(img_height, img_width, 3))
+# After line 74, add class weights to handle imbalanced classes
+# This helps improve accuracy for underrepresented emotions like "Disgust"
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
 
-# Add a new head for emotion classification.
-x = base_model.output
+# Calculate class weights
+classes = list(train_generator.class_indices.keys())
+class_counts = [0] * len(classes)
+for i in range(len(train_generator.classes)):
+    class_counts[train_generator.classes[i]] += 1
+
+class_weights = {}
+total_samples = sum(class_counts)
+for i, count in enumerate(class_counts):
+    # Inversely proportional to class frequency
+    class_weights[i] = total_samples / (len(class_counts) * count)
+print("Class weights:", class_weights)
+
+# In train_model.py, add targeted augmentation
+# After calculating class weights:
+
+# Identify classes with fewer samples
+min_count = min(class_counts)
+min_class_idx = class_counts.index(min_count)
+min_class_name = classes[min_class_idx]
+print(f"Underrepresented class: {min_class_name} with {min_count} samples")
+
+# For the disgust class specifically, create more augmented samples
+if 'disgust' in [c.lower() for c in classes]:
+    disgust_idx = [i for i, c in enumerate(classes) if c.lower() == 'disgust'][0]
+    class_weights[disgust_idx] *= 1.5  # Extra weight for disgust class
+
+# -------------------------------
+# 2. Build Model with MobileNetV2 + Modifications
+# -------------------------------
+base_model = MobileNetV2(
+    weights='imagenet',
+    include_top=False,
+    input_shape=(img_size, img_size, 3)
+)
+
+# Convert grayscale to RGB (MobileNetV2 expects 3 channels)
+def grayscale_to_rgb(x):
+    return tf.repeat(x, 3, axis=-1)
+
+# Create the model architecture
+inputs = tf.keras.Input(shape=(img_size, img_size, 1))
+x = tf.keras.layers.Lambda(grayscale_to_rgb)(inputs)
+x = base_model(x)
 x = GlobalAveragePooling2D()(x)
-x = Dense(512, activation='relu')(x)
+
+# Get the output dimension from the previous layer
+features_dim = K.int_shape(x)[-1]  # This will be 1280
+
+# Create attention with matching dimensions
+attention = Dense(features_dim, activation='relu')(x)  # Change 512 to features_dim
+attention = Dense(features_dim, activation='sigmoid')(attention)  # Change 512 to features_dim
+x = Multiply()([x, attention])
+
+# Add batch normalization
+x = Dense(512)(x)
+x = BatchNormalization()(x)
+x = Activation('relu')(x)
 x = Dropout(0.5)(x)
-predictions = Dense(train_generator.num_classes, activation='softmax')(x)
 
-model = Model(inputs=base_model.input, outputs=predictions)
+# Try smaller dropout for the second dense layer
+x = Dense(256)(x)
+x = BatchNormalization()(x)
+x = Activation('relu')(x)
+x = Dropout(0.3)(x)
 
-# Initially freeze all layers of the base model.
+# Use label smoothing for better generalization
+outputs = Dense(7, activation='softmax')(x)
+
+model = Model(inputs=inputs, outputs=outputs)
+
+# Freeze base model layers
 for layer in base_model.layers:
     layer.trainable = False
 
-# Compile the model using Adam optimizer.
-model.compile(optimizer=Adam(lr=1e-3),
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+# Compile model with mixed precision for faster GPU training
+tf.keras.mixed_precision.set_global_policy('mixed_float16')
+model.compile(
+    optimizer=Adam(learning_rate=learning_rate),
+    loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.1),
+    metrics=['accuracy']
+)
 
-# Set up callbacks to help during training.
+# -------------------------------
+# 3. Enhanced Callbacks
+# -------------------------------
+# Add timing callback to measure performance
+class TimeHistory(tf.keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.times = []
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)
+        self.epoch_time_start = time.time()
+        print(f"Epoch took {self.times[-1]:.2f} seconds")
+
+time_callback = TimeHistory()
+
+# Rest of the callbacks
 callbacks = [
-    ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, verbose=1),
-    EarlyStopping(monitor='val_loss', patience=5, verbose=1, restore_best_weights=True),
-    ModelCheckpoint('best_model.h5', monitor='val_accuracy', save_best_only=True, verbose=1)
+    ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-6, verbose=1),
+    EarlyStopping(monitor='val_loss', patience=10, verbose=1, restore_best_weights=True),
+    ModelCheckpoint('best_model.h5', monitor='val_accuracy', save_best_only=True, verbose=1),
+    time_callback
 ]
 
-# Train the new head for a number of epochs.
-initial_epochs = 20
-model.fit(
+# -------------------------------
+# 4. Initial Training
+# -------------------------------
+start_time = time.time()
+history_initial = model.fit(
     train_generator,
     steps_per_epoch=train_generator.samples // batch_size,
     validation_data=valid_generator,
     validation_steps=valid_generator.samples // batch_size,
-    epochs=initial_epochs,
-    callbacks=callbacks
+    epochs=25,
+    callbacks=callbacks,
+    class_weight=class_weights  # Add this line
 )
 
 # -------------------------------
-# 4. Fine-Tuning the Model
+# 5. Fine-tuning
 # -------------------------------
-# Unfreeze the last few layers of the base model for fine-tuning.
-# (Adjust the slice as needed; here we unfreeze the last 4 layers.)
-for layer in base_model.layers[-4:]:
+# Unfreeze some layers for fine-tuning
+for layer in base_model.layers[-15:]:  # Unfreeze more layers for better fine-tuning
     layer.trainable = True
 
-# Re-compile the model with a lower learning rate for fine-tuning.
-model.compile(optimizer=SGD(lr=1e-4, momentum=0.9),
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+# Lower learning rate for fine-tuning
+model.compile(
+    optimizer=SGD(learning_rate=1e-5, momentum=0.9),
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
 
-# Continue training (fine-tuning) for additional epochs.
-fine_tune_epochs = 10
-model.fit(
+# Continue training
+history_fine_tune = model.fit(
     train_generator,
     steps_per_epoch=train_generator.samples // batch_size,
     validation_data=valid_generator,
     validation_steps=valid_generator.samples // batch_size,
-    epochs=fine_tune_epochs,
-    callbacks=callbacks
+    epochs=25,
+    callbacks=callbacks,
+    class_weight=class_weights  # Add this line
 )
 
+total_time = time.time() - start_time
+print(f"Total training time: {total_time/60:.2f} minutes")
+
 # -------------------------------
-# 5. Save the Final Model
+# 6. Save Final Model
 # -------------------------------
-# Save your updated model; your inference scripts (app.py and realtime_emotion.py)
-# can then load this file.
-model.save('Final_model.h5')
+model.save('Backend/Final_model.h5')  # Save to Backend directory
+print("Model saved to Backend/Final_model.h5")
+
+# -------------------------------
+# 7. Plot training results
+# -------------------------------
+def plot_history(history_initial, history_fine_tune=None):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Plot accuracy
+    ax1.plot(history_initial.history['accuracy'])
+    ax1.plot(history_initial.history['val_accuracy'])
+    if history_fine_tune:
+        offset = len(history_initial.history['accuracy'])
+        ax1.plot(range(offset, offset + len(history_fine_tune.history['accuracy'])), 
+                history_fine_tune.history['accuracy'])
+        ax1.plot(range(offset, offset + len(history_fine_tune.history['val_accuracy'])), 
+                history_fine_tune.history['val_accuracy'])
+    ax1.set_title('Model Accuracy')
+    ax1.set_ylabel('Accuracy')
+    ax1.set_xlabel('Epoch')
+    ax1.legend(['Train', 'Validation', 'Train (fine-tune)', 'Validation (fine-tune)'], loc='lower right')
+    
+    # Plot loss
+    ax2.plot(history_initial.history['loss'])
+    ax2.plot(history_initial.history['val_loss'])
+    if history_fine_tune:
+        offset = len(history_initial.history['loss'])
+        ax2.plot(range(offset, offset + len(history_fine_tune.history['loss'])), 
+                history_fine_tune.history['loss'])
+        ax2.plot(range(offset, offset + len(history_fine_tune.history['val_loss'])), 
+                history_fine_tune.history['val_loss'])
+    ax2.set_title('Model Loss')
+    ax2.set_ylabel('Loss')
+    ax2.set_xlabel('Epoch')
+    ax2.legend(['Train', 'Validation', 'Train (fine-tune)', 'Validation (fine-tune)'], loc='upper right')
+    
+    plt.tight_layout()
+    plt.savefig('training_history.png')
+    plt.show()
+
+plot_history(history_initial, history_fine_tune)
+
+# Then update all scripts to use absolute paths:
+import os
+model_path = os.path.join(os.path.dirname(__file__), 'Final_model.h5')
+emotion_model = load_model(model_path)
