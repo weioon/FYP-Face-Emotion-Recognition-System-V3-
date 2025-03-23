@@ -8,6 +8,7 @@ from deepface import DeepFace
 import base64
 import os
 import time
+from io import BytesIO
 
 app = FastAPI()
 
@@ -30,9 +31,12 @@ yolo_model = YOLO('yolov8n.pt')
 class RealtimeEmotionDetector:
     def __init__(self):
         self.yolo_model = YOLO('yolov8n.pt')
-        self.emotion_records = []
         self.recording = False
+        self.emotion_data = []
         self.start_time = None
+        self.sad_neutral_ratio_threshold = 0.3  # Default value
+        self.current_emotion_data = []  # Add this line to store current emotions
+        self.emotion_records = []
         self.end_time = None
         # Threshold for considering an emotion significant
         self.significance_threshold = 10.0  # percentage
@@ -280,6 +284,8 @@ class RealtimeEmotionDetector:
 
     def process_frame(self, frame):
         results = self.yolo_model(frame, classes=0)
+        emotions_detected = []
+        
         for result in results:
             boxes = result.boxes
             for box in boxes:
@@ -315,12 +321,34 @@ class RealtimeEmotionDetector:
                                 'scores': emotion_scores
                             })
                         
+                        # Store emotion data for API response
+                        emotions_detected.append({
+                            "face_location": [x1, y1, x2, y2],
+                            "dominant_emotion": dominant_emotion,
+                            "emotion_scores": emotion_scores
+                        })
+                        
+                        # Draw rectangle and emotion label
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        label = f"{dominant_emotion}"
+                        label = f"{dominant_emotion}: {emotion_scores[dominant_emotion.lower()]:.1f}%"
                         cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                     except Exception as e:
                         print(f"DeepFace error: {e}")
                         continue
+        
+        # Store current emotion data for API access
+        self.current_emotion_data = emotions_detected
+        
+        # If recording, store the data
+        if self.recording:
+            timestamp = time.time() - self.start_time if self.start_time else 0
+            for emotion in emotions_detected:
+                self.emotion_data.append({
+                    "timestamp": timestamp,
+                    "emotion": emotion["dominant_emotion"],
+                    "scores": emotion["emotion_scores"]
+                })
+                
         return frame
 
     def calibrate_emotion_sensitivity(self, sad_neutral_ratio=None):
@@ -338,6 +366,41 @@ class RealtimeEmotionDetector:
             print(f"Lower values will classify more neutral expressions as sad.")
         else:
             print("Invalid sad_neutral_ratio. Please use a value between 0.1 and 1.0")
+
+detector = RealtimeEmotionDetector()
+
+@app.post("/detect_emotion")
+async def detect_emotion(request: ImageRequest):
+    try:
+        # Decode the base64 image
+        image_data = base64.b64decode(request.image)
+        nparr = np.frombuffer(image_data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Process the frame
+        result_frame = detector.process_frame(frame)
+        
+        # Extract emotion data (assuming your process_frame returns this information)
+        # You'll need to modify your process_frame to return emotion data
+        emotion_data = detector.current_emotion_data if hasattr(detector, "current_emotion_data") else {}
+        
+        return {
+            "status": "success",
+            "emotions": emotion_data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
+@app.post("/start_recording")
+async def start_recording():
+    detector.start_recording()
+    return {"status": "recording_started"}
+
+@app.post("/stop_recording")
+async def stop_recording():
+    detector.stop_recording()
+    analysis_result = detector.analyze_emotions()
+    return analysis_result
 
 def main():
     detector = RealtimeEmotionDetector()
@@ -426,4 +489,5 @@ def main():
     print("Webcam closed")
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
