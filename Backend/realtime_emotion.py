@@ -29,13 +29,14 @@ class ImageRequest(BaseModel):
 yolo_model = YOLO('yolov8n.pt')
 
 class RealtimeEmotionDetector:
-    def __init__(self):
-        self.yolo_model = YOLO('yolov8n.pt')
+    def __init__(self, debug_mode=False):
         self.recording = False
-        self.emotion_data = []
         self.start_time = None
+        self.emotion_data = []
+        self.current_emotion_data = []
+        self.debug_mode = debug_mode
+        self.yolo_model = YOLO('yolov8n.pt')
         self.sad_neutral_ratio_threshold = 0.3  # Default value
-        self.current_emotion_data = []  # Add this line to store current emotions
         self.emotion_records = []
         self.end_time = None
         # Threshold for considering an emotion significant
@@ -55,6 +56,25 @@ class RealtimeEmotionDetector:
         print("Recording stopped.")
 
     def analyze_emotions(self):
+        """Analyze recorded emotion data and provide insights"""
+        duration = self.end_time - self.start_time if self.start_time and self.end_time else 0
+        
+        # If no emotions were recorded, return a helpful message
+        if not self.emotion_data or len(self.emotion_data) < 3:
+            print("No emotions were recorded during the session.")
+            return {
+                "error": "No emotions were recorded. Please try again and make sure your face is visible.",
+                "duration": duration,
+                "stats": {"neutral": 100.0},  # Provide fallback data for frontend
+                "emotion_journey": {
+                    "beginning": {"neutral": 100.0},
+                    "middle": {"neutral": 100.0},
+                    "end": {"neutral": 100.0}
+                }
+            }
+            
+        # Continue with regular analysis...
+        # (rest of your existing analyze_emotions code)
         if not self.emotion_records:
             return "No emotions recorded."
 
@@ -283,73 +303,75 @@ class RealtimeEmotionDetector:
         return recommendations
 
     def process_frame(self, frame):
-        results = self.yolo_model(frame, classes=0)
-        emotions_detected = []
-        
-        for result in results:
-            boxes = result.boxes
-            for box in boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
-                face = frame[y1:y2, x1:x2]
-                if face.size > 0:
-                    try:
-                        temp_path = "temp_face.jpg"
-                        cv2.imwrite(temp_path, face)
-                        analysis = DeepFace.analyze(img_path=temp_path, actions=['emotion'], enforce_detection=False)
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
+        """Process a single frame and detect emotions"""
+        try:
+            # Make a copy to avoid modifying the original
+            img = frame.copy()
+            
+            # Resize image to speed up processing (50% smaller)
+            scale = 0.5
+            small_frame = cv2.resize(img, (0, 0), fx=scale, fy=scale)
+            
+            emotions_detected = []
+            
+            # Use DeepFace with lighter settings
+            try:
+                results = DeepFace.analyze(
+                    small_frame,
+                    actions=['emotion'],
+                    enforce_detection=False,  # Don't enforce face detection
+                    detector_backend='opencv',  # Faster detector
+                    silent=True
+                )
+                
+                # Normalize results
+                if not isinstance(results, list):
+                    results = [results]
+                
+                for result in results:
+                    if 'emotion' in result and 'region' in result:
+                        # Get face location
+                        x = int(result['region']['x'] / scale)
+                        y = int(result['region']['y'] / scale)
+                        w = int(result['region']['w'] / scale)
+                        h = int(result['region']['h'] / scale)
                         
-                        # Extract all emotion probabilities
-                        emotion_scores = analysis[0]['emotion']
-                        dominant_emotion = analysis[0]['dominant_emotion'].title()
+                        # Extract emotion data
+                        emotions_dict = result['emotion']
+                        dominant_emotion = result['dominant_emotion']
                         
-                        # Apply reclassification rules for Neutral → Sad
-                        if dominant_emotion == "Neutral":
-                            neutral_score = emotion_scores.get('neutral', 0)
-                            sad_score = emotion_scores.get('sad', 0)
-                            
-                            # If Sad score is relatively high compared to Neutral, reclassify
-                            if sad_score > 0 and sad_score >= neutral_score * self.sad_neutral_ratio_threshold:
-                                dominant_emotion = "Sad"
-                                # Log the reclassification for debugging
-                                print(f"Reclassified Neutral to Sad (scores: neutral={neutral_score:.2f}, sad={sad_score:.2f})")
+                        # Format emotion scores as percentages
+                        emotion_scores = {k: float(v) for k, v in emotions_dict.items()}
                         
-                        if self.recording:
-                            self.emotion_records.append({
-                                'timestamp': time.time(), 
-                                'emotion': dominant_emotion, 
-                                'scores': emotion_scores
-                            })
-                        
-                        # Store emotion data for API response
                         emotions_detected.append({
-                            "face_location": [x1, y1, x2, y2],
+                            "face_location": [x, y, x+w, y+h],
                             "dominant_emotion": dominant_emotion,
                             "emotion_scores": emotion_scores
                         })
                         
-                        # Draw rectangle and emotion label
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        label = f"{dominant_emotion}: {emotion_scores[dominant_emotion.lower()]:.1f}%"
-                        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                    except Exception as e:
-                        print(f"DeepFace error: {e}")
-                        continue
-        
-        # Store current emotion data for API access
-        self.current_emotion_data = emotions_detected
-        
-        # If recording, store the data
-        if self.recording:
-            timestamp = time.time() - self.start_time if self.start_time else 0
-            for emotion in emotions_detected:
-                self.emotion_data.append({
-                    "timestamp": timestamp,
-                    "emotion": emotion["dominant_emotion"],
-                    "scores": emotion["emotion_scores"]
-                })
-                
-        return frame
+                        # Draw rectangle on frame for visualization
+                        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        
+                        # IMPORTANT: If recording, store the emotion data
+                        if self.recording:
+                            timestamp = time.time() - self.start_time if self.start_time else 0
+                            self.emotion_data.append({
+                                "timestamp": timestamp,
+                                "emotion": dominant_emotion,
+                                "score": emotion_scores.get(dominant_emotion.lower(), 0)
+                            })
+                            print(f"Recorded emotion: {dominant_emotion} at {timestamp:.2f}s")
+            
+            except Exception as e:
+                print(f"DeepFace error: {e}")
+            
+            # Store current emotion data for API access
+            self.current_emotion_data = emotions_detected
+            
+            return frame
+        except Exception as e:
+            print(f"Error in process_frame: {e}")
+            return frame
 
     def calibrate_emotion_sensitivity(self, sad_neutral_ratio=None):
         """
@@ -366,6 +388,59 @@ class RealtimeEmotionDetector:
             print(f"Lower values will classify more neutral expressions as sad.")
         else:
             print("Invalid sad_neutral_ratio. Please use a value between 0.1 and 1.0")
+
+    def detect_emotions_in_frame(self, frame):
+        """Detect faces and emotions in a single frame"""
+        try:
+            # Get a copy of the frame
+            img = frame.copy()
+            
+            # Convert to RGB (DeepFace expects RGB)
+            rgb_frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            
+            # Use DeepFace to detect emotions
+            results = DeepFace.analyze(
+                rgb_frame, 
+                actions=['emotion'],
+                enforce_detection=False,
+                silent=True,
+                detector_backend='opencv'  # Use OpenCV for more consistent face detection
+            )
+            
+            # Normalize results structure
+            if not isinstance(results, list):
+                results = [results]
+                
+            face_emotions = []
+            
+            for result in results:
+                if 'emotion' in result and 'region' in result:
+                    # Get face location
+                    face_x = result['region']['x']
+                    face_y = result['region']['y']
+                    face_w = result['region']['w']
+                    face_h = result['region']['h']
+                    
+                    # Ensure coordinates are integers
+                    face_x = int(face_x)
+                    face_y = int(face_y)
+                    face_w = int(face_w)
+                    face_h = int(face_h)
+                    
+                    # Get emotions
+                    emotions_dict = result['emotion']
+                    dominant_emotion = result['dominant_emotion']
+                    
+                    face_emotions.append({
+                        "face_location": [face_x, face_y, face_x + face_w, face_y + face_h],
+                        "dominant_emotion": dominant_emotion,
+                        "emotion_scores": emotions_dict
+                    })
+            
+            return face_emotions
+        except Exception as e:
+            print(f"Error in detect_emotions_in_frame: {str(e)}")
+            return []
 
 detector = RealtimeEmotionDetector()
 
