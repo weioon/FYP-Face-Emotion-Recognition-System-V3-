@@ -442,6 +442,58 @@ class RealtimeEmotionDetector:
             print(f"Error in detect_emotions_in_frame: {str(e)}")
             return []
 
+    def _interpret_emotional_journey(self, emotion_journey, emotion_stats):
+        """Generate a detailed pedagogical interpretation of the emotional journey"""
+        interpretation = "Analysis of Learning Engagement Patterns:\n\n"
+        
+        # Beginning phase analysis
+        if emotion_journey["beginning"]:
+            beginning_emotions = emotion_journey["beginning"]
+            interpretation += "**Initial Learning Phase:**\n"
+            
+            if "happy" in beginning_emotions and beginning_emotions["happy"] > 25:
+                interpretation += "• Strong positive engagement detected (%.1f%%), indicating effective introduction of material. Research suggests this receptive state enhances information retention and cognitive processing.\n" % beginning_emotions["happy"]
+            if "neutral" in beginning_emotions and beginning_emotions["neutral"] > 40:
+                interpretation += "• Predominant neutral expressions (%.1f%%) suggest attentive observation. Note that in educational contexts, extended neutral engagement may indicate either focused concentration or passive reception requiring verification through interactive elements.\n" % beginning_emotions["neutral"]
+            if "angry" in beginning_emotions and beginning_emotions["angry"] > 15:
+                interpretation += "• Significant frustration indicators (%.1f%%) during initial content exposure. This often signals conceptual barriers or misalignment with learner expectations that may require immediate clarification.\n" % beginning_emotions["angry"]
+            
+            # Add more detailed interpretations for other emotions
+        
+        # Similar enhancements for middle and end phases
+        
+        # Analyze learning trajectory patterns
+        if "happy" in emotion_journey["beginning"] and "happy" in emotion_journey["end"]:
+            if emotion_journey["beginning"]["happy"] < emotion_journey["end"]["happy"]:
+                interpretation += "\n**Positive Learning Trajectory:** The %.1f%% increase in positive engagement suggests successful conceptual development and growing mastery over the session duration.\n" % (emotion_journey["end"]["happy"] - emotion_journey["beginning"]["happy"])
+        
+        # Add more pattern analysis
+        
+        return interpretation
+
+    def _generate_educational_recommendations(self, emotion_journey, significant_emotions):
+        recommendations = []
+        
+        # Evidence-based recommendations for predominant emotions
+        if "Angry" in significant_emotions and significant_emotions["Angry"] > 15:
+            recommendations.append("**Addressing Cognitive Friction:** The %.1f%% frustration indicators suggest conceptual obstacles. Consider implementing the 'Muddiest Point' technique - request students to identify the most confusing aspect, then address these specific points immediately." % significant_emotions["Angry"])
+            recommendations.append("**Scaffolded Progression:** Break the challenging concept into smaller, sequential components with immediate application opportunities after each segment.")
+        
+        # Recommendations based on emotional transitions
+        beginning_set = set(emotion_journey["beginning"].keys())
+        end_set = set(emotion_journey["end"].keys())
+        
+        if "Neutral" in beginning_set and "Happy" in end_set:
+            recommendations.append("**Effective Engagement Pattern:** The transition from neutral to positive emotions indicates successful cognitive activation. This teaching sequence appears effective and should be documented as a successful instructional pattern.")
+        
+        # Recommendations for mixed emotions
+        if "Happy" in significant_emotions and "Surprise" in significant_emotions:
+            recommendations.append("**Leverage Cognitive Curiosity:** The combination of surprise and enjoyment indicates moments of productive cognitive dissonance. These 'desirable difficulties' should be identified and potentially expanded in future sessions.")
+        
+        # Add more detailed recommendations
+        
+        return recommendations
+
 detector = RealtimeEmotionDetector()
 
 @app.post("/detect_emotion")
