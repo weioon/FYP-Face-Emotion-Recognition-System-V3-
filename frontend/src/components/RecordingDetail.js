@@ -48,11 +48,11 @@ const RecordingDetail = () => {
 
   // Prepare chart data for emotions
   const chartData = {
-    labels: recording.analysis_data.significant_emotions?.map(item => item.emotion) || [],
+    labels: recording.analysis_data.significant_emotions?.map(item => item.emotion) || ['No Data'],
     datasets: [
       {
         label: 'Emotion Percentage',
-        data: recording.analysis_data.significant_emotions?.map(item => item.percentage) || [],
+        data: recording.analysis_data.significant_emotions?.map(item => item.percentage) || [100],
         backgroundColor: [
           'rgba(255, 99, 132, 0.6)',
           'rgba(54, 162, 235, 0.6)',
@@ -71,8 +71,8 @@ const RecordingDetail = () => {
     <div className="recording-detail">
       <h2>Recording Details</h2>
       <div className="recording-meta">
-        <p>Date: {moment(recording.timestamp).format('DD-MM-YYYY')}</p>
-        <p>Time: {moment(recording.timestamp).format('h:mm:ss A')}</p>
+        <p>Date: {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</p>
+        <p>Time: {moment.utc(recording.timestamp).local().format('h:mm:ss A')}</p>
       </div>
 
       <div className="charts-container">
@@ -87,10 +87,50 @@ const RecordingDetail = () => {
         <div className="summary-text">
           {recording.analysis_data.summary || "No summary available."}
         </div>
+        
+        {/* Add Interpretation Section */}
+        <h3>Interpretation</h3>
+        <div className="interpretation">
+          {recording.analysis_data.interpretation || "No interpretation available."}
+        </div>
 
-        <h3>Recommendations</h3>
+        {/* Add Emotional Journey Analysis */}
+        <h3>Emotional Journey</h3>
+        <div className="journey-stages">
+          <div className="stage">
+            <h4>Beginning</h4>
+            <ul>
+              {Object.entries(recording.analysis_data.emotion_journey?.beginning || {}).map(([emotion, value]) => (
+                <li key={emotion}>{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
+              ))}
+            </ul>
+          </div>
+          <div className="stage">
+            <h4>Middle</h4>
+            <ul>
+              {Object.entries(recording.analysis_data.emotion_journey?.middle || {}).map(([emotion, value]) => (
+                <li key={emotion}>{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
+              ))}
+            </ul>
+          </div>
+          <div className="stage">
+            <h4>End</h4>
+            <ul>
+              {Object.entries(recording.analysis_data.emotion_journey?.end || {}).map(([emotion, value]) => (
+                <li key={emotion}>{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Add Educational Recommendations Section */}
+        <h3>Educational Recommendations</h3>
         <div className="recommendations">
-          {recording.analysis_data.recommendations?.map((rec, index) => (
+          {recording.analysis_data.educational_recommendations?.map((rec, index) => (
+            <div key={index} className="recommendation-item">
+              {rec}
+            </div>
+          )) || recording.analysis_data.recommendations?.map((rec, index) => (
             <div key={index} className="recommendation-item">
               {rec}
             </div>

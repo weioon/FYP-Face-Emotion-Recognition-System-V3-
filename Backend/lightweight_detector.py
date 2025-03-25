@@ -138,23 +138,40 @@ class LightweightDetector:
         print(f"Stopped recording. Collected {len(self.emotion_data)} data points")
 
     def analyze_emotions(self):
-        """Generate analysis from recorded emotions"""
+        """Analyze recorded emotion data and provide insights"""
         duration = self.end_time - self.start_time if self.start_time and self.end_time else 0
         
+        # If no emotions were recorded, return a helpful message with fallback data
         if not self.emotion_data or len(self.emotion_data) < 3:
             print("No emotions were recorded during the session.")
-            return {
-                "error": "No emotions were recorded. Please try again and make sure your face is visible.",
+            default_data = {
+                "warning": "Limited emotion data recorded",
                 "duration": duration,
-                "stats": {"neutral": 100.0}, 
+                "stats": {"neutral": 100.0},
+                "dominant_emotion": "neutral",
+                "significant_emotions": [
+                    {"emotion": "neutral", "percentage": 100.0}
+                ],
                 "emotion_journey": {
                     "beginning": {"neutral": 100.0},
                     "middle": {"neutral": 100.0},
                     "end": {"neutral": 100.0}
-                }
+                },
+                "summary": "No significant emotions detected during this session.",
+                "interpretation": "Insufficient data was captured to provide a meaningful interpretation of emotional patterns.",
+                "educational_recommendations": [
+                    "Ensure your face is clearly visible to the camera",
+                    "Check lighting conditions for better facial detection",
+                    "Try to maintain your position within the camera frame"
+                ],
+                "recommendations": [
+                    "Try to position yourself better in front of the camera",
+                    "Ensure good lighting for better emotion detection"
+                ]
             }
+            return default_data
         
-        # Calculate emotion statistics
+        # Process the emotion data
         emotion_counts = {}
         for record in self.emotion_data:
             emotion = record["emotion"]
@@ -165,6 +182,21 @@ class LightweightDetector:
         total_records = len(self.emotion_data)
         emotion_stats = {emotion: (count / total_records) * 100 for emotion, count in emotion_counts.items()}
         
+        # Get dominant emotion
+        dominant_emotion = max(emotion_stats.items(), key=lambda x: x[1])[0] if emotion_stats else "neutral"
+        
+        # Create significant emotions list for frontend display
+        significant_emotions = []
+        for emotion, percentage in emotion_stats.items():
+            if percentage >= 5.0:  # Only include emotions that are at least 5% of the time
+                significant_emotions.append({
+                    "emotion": emotion,
+                    "percentage": percentage
+                })
+        
+        # Sort by percentage
+        significant_emotions.sort(key=lambda x: x["percentage"], reverse=True)
+        
         # Divide the recording into beginning, middle, and end sections
         section_size = max(1, total_records // 3)
         beginning = self.emotion_data[:section_size]
@@ -172,48 +204,146 @@ class LightweightDetector:
         end = self.emotion_data[section_size*2:]
         
         # Calculate emotions for each section
-        beginning_emotions = {}
-        middle_emotions = {}
-        end_emotions = {}
-        
-        for record in beginning:
-            emotion = record["emotion"]
-            if emotion not in beginning_emotions:
-                beginning_emotions[emotion] = 0
-            beginning_emotions[emotion] += 1
-        
-        for record in middle:
-            emotion = record["emotion"]
-            if emotion not in middle_emotions:
-                middle_emotions[emotion] = 0
-            middle_emotions[emotion] += 1
-        
-        for record in end:
-            emotion = record["emotion"]
-            if emotion not in end_emotions:
-                end_emotions[emotion] = 0
-            end_emotions[emotion] += 1
-        
-        # Convert to percentages
-        beginning_stats = {e: (c / len(beginning)) * 100 for e, c in beginning_emotions.items()} if beginning else {"neutral": 100}
-        middle_stats = {e: (c / len(middle)) * 100 for e, c in middle_emotions.items()} if middle else {"neutral": 100}
-        end_stats = {e: (c / len(end)) * 100 for e, c in end_emotions.items()} if end else {"neutral": 100}
+        beginning_emotions = self._calculate_section_emotions(beginning)
+        middle_emotions = self._calculate_section_emotions(middle)
+        end_emotions = self._calculate_section_emotions(end)
         
         # Generate analysis
-        dominant_emotion = max(emotion_stats.items(), key=lambda x: x[1])[0] if emotion_stats else "neutral"
+        summary = f"During this session, the dominant emotion was {dominant_emotion} ({emotion_stats.get(dominant_emotion, 0):.1f}%)."
         
+        # Generate recommendations based on emotions
+        recommendations = [
+            f"Your dominant emotion was {dominant_emotion}. Consider how this might affect your learning.",
+            "Being aware of your emotional state can help improve focus and learning outcomes."
+        ]
+        
+        if "happy" in emotion_stats and emotion_stats["happy"] > 30:
+            recommendations.append("You seemed happy during this session, which is great for learning!")
+        elif "sad" in emotion_stats and emotion_stats["sad"] > 30:
+            recommendations.append("You seemed sad during this session. Consider taking breaks to improve mood.")
+        elif "angry" in emotion_stats and emotion_stats["angry"] > 20:
+            recommendations.append("Detected frustration during this session. Consider breaking complex tasks into smaller steps.")
+        
+        # Generate interpretation
+        interpretation = self._interpret_emotional_journey(
+            {"beginning": beginning_emotions, "middle": middle_emotions, "end": end_emotions},
+            emotion_stats
+        )
+
+        # Generate educational recommendations
+        if "happy" in emotion_stats and emotion_stats["happy"] > 30:
+            educational_recommendations = [
+                "The positive engagement suggests this teaching approach was effective.",
+                "Consider building on these concepts in future sessions.",
+                "The student's positive response indicates good understanding."
+            ]
+        elif "sad" in emotion_stats and emotion_stats["sad"] > 30:
+            educational_recommendations = [
+                "Consider reviewing the material with alternative explanations.",
+                "Break complex topics into smaller, more digestible segments.",
+                "Additional examples or visual aids might improve understanding."
+            ]
+        elif "angry" in emotion_stats and emotion_stats["angry"] > 20:
+            educational_recommendations = [
+                "Identify challenging sections that may have caused frustration.",
+                "Consider alternative approaches to the difficult concepts.",
+                "Provide additional practice exercises for these topics."
+            ]
+        else:
+            educational_recommendations = [
+                "Maintain a balance of challenge and achievement in learning materials.",
+                "Consider varying teaching methods to engage different learning styles.",
+                "Regular check-ins can help identify areas needing clarification."
+            ]
+
         return {
             "duration": duration,
             "stats": emotion_stats,
             "dominant_emotion": dominant_emotion,
+            "significant_emotions": significant_emotions,
             "emotion_journey": {
-                "beginning": beginning_stats,
-                "middle": middle_stats,
-                "end": end_stats
+                "beginning": beginning_emotions,
+                "middle": middle_emotions,
+                "end": end_emotions
             },
-            "interpretation": f"The dominant emotion was {dominant_emotion}.",
-            "educational_recommendations": [
-                "Consider how your emotions might affect learning outcomes.",
-                "Being aware of your emotional state can help improve focus."
-            ]
+            "summary": summary,
+            "interpretation": interpretation,
+            "educational_recommendations": educational_recommendations,
+            "recommendations": recommendations
         }
+
+    # Helper method for section emotion calculation
+    def _calculate_section_emotions(self, section_data):
+        """Calculate emotion percentages for a section of the recording"""
+        if not section_data:
+            return {"neutral": 100.0}
+            
+        emotion_counts = {}
+        for record in section_data:
+            emotion = record["emotion"]
+            if emotion not in emotion_counts:
+                emotion_counts[emotion] = 0
+            emotion_counts[emotion] += 1
+        
+        total_records = len(section_data)
+        return {e: (c / total_records) * 100 for e, c in emotion_counts.items()}
+
+    # Add this method to LightweightDetector class
+    def _interpret_emotional_journey(self, emotion_journey, emotion_stats):
+        """Generate an interpretation of the emotional journey"""
+        interpretation = "Based on the emotional patterns observed: "
+        
+        # Analyze beginning state
+        if emotion_journey["beginning"]:
+            beginning_emotions = emotion_journey["beginning"]
+            interpretation += "\n\nAt the beginning: "
+            
+            if "happy" in beginning_emotions and beginning_emotions["happy"] > 25:
+                interpretation += "The student started with a positive mindset, showing engagement and readiness to learn. "
+            if "neutral" in beginning_emotions and beginning_emotions["neutral"] > 40:
+                interpretation += "The student began in a calm, receptive state. "
+            if "angry" in beginning_emotions and beginning_emotions["angry"] > 15:
+                interpretation += "The student may have started with frustration or resistance to the subject matter. "
+            if "sad" in beginning_emotions and beginning_emotions["sad"] > 15:
+                interpretation += "The student showed signs of disengagement or concern at the start. "
+        
+        # Analyze middle state
+        if emotion_journey["middle"]:
+            middle_emotions = emotion_journey["middle"]
+            interpretation += "\n\nDuring the middle: "
+            
+            if "happy" in middle_emotions and middle_emotions["happy"] > 25:
+                interpretation += "The student experienced moments of understanding or connection with the material. "
+            if "sad" in middle_emotions and middle_emotions["sad"] > 15:
+                interpretation += "The student may have struggled with comprehension or engagement. "
+            if "angry" in middle_emotions and middle_emotions["angry"] > 15:
+                interpretation += "The student encountered concepts that were challenging or frustrating. "
+        
+        # Analyze end state
+        if emotion_journey["end"]:
+            end_emotions = emotion_journey["end"]
+            interpretation += "\n\nBy the end: "
+            
+            if "happy" in end_emotions and end_emotions["happy"] > 25:
+                interpretation += "The student achieved a sense of accomplishment or satisfaction. "
+            if "neutral" in end_emotions and end_emotions["neutral"] > 50:
+                interpretation += "The student maintained composed attention through the conclusion. "
+            if "sad" in end_emotions and end_emotions["sad"] > 20:
+                interpretation += "The student may have felt disappointed or unconfident about their learning outcome. "
+        
+        # Analyze overall pattern
+        dominant_emotion = max(emotion_stats.items(), key=lambda x: x[1])[0] if emotion_stats else "neutral"
+        interpretation += f"\n\nOverall, the predominant emotion was {dominant_emotion}, which suggests "
+        
+        if dominant_emotion == "happy":
+            interpretation += "a positive learning experience with good engagement."
+        elif dominant_emotion == "neutral":
+            interpretation += "focused attention, though this could also indicate passive engagement."
+        elif dominant_emotion == "sad":
+            interpretation += "some difficulties with the material or potential disengagement."
+        elif dominant_emotion == "angry":
+            interpretation += "frustration with challenging concepts that may need more explanation."
+        else:
+            interpretation += "various emotional responses to the learning material."
+        
+        return interpretation

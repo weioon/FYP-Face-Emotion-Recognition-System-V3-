@@ -161,17 +161,20 @@ async def stop_recording(current_user: User = Depends(get_current_user), db: Ses
         detector.stop_recording()
         
         analysis = detector.analyze_emotions()
-        logger.info(f"Analysis result: {analysis}")
+        logger.info(f"Analysis result summary: Duration={analysis.get('duration', 0)}, Dominant emotion={analysis.get('dominant_emotion', 'unknown')}")
         
-        # Save to database
-        if "error" not in analysis:
-            new_recording = Recording(
-                user_id=current_user.id,
-                analysis_data=json.dumps(analysis)
-            )
-            db.add(new_recording)
-            db.commit()
+        # Always save to database, even with minimal data
+        new_recording = Recording(
+            user_id=current_user.id,
+            analysis_data=json.dumps(analysis),
+            timestamp=datetime.utcnow()  # Explicitly set UTC time
+        )
         
+        db.add(new_recording)
+        db.commit()
+        logger.info(f"Recording saved to database with ID: {new_recording.id}")
+        
+        # Return the analysis for immediate display
         return analysis
     except Exception as e:
         logger.error(f"Error stopping recording: {str(e)}")

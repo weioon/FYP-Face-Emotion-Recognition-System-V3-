@@ -107,7 +107,7 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
       {analysisResults.interpretation && (
         <div className="interpretation">
           <h3>Interpretation</h3>
-          <p>{analysisResults.interpretation}</p>
+          <p style={{ whiteSpace: 'pre-line' }}>{analysisResults.interpretation}</p>
         </div>
       )}
       

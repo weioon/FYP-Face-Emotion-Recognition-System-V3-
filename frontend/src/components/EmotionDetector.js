@@ -89,7 +89,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
           });
           console.log("Recording stopped with results:", response.data);
           setIsRecording(false);
-          setAnalysisResults(response.data);
+          setAnalysisResults(response.data);  // This sets the results for the dashboard
         } catch (err) {
           console.error("Recording stop error:", err);
           setIsRecording(false);

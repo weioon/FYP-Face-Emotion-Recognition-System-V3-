@@ -53,14 +53,22 @@ const RecordingHistory = () => {
           {recordings.map((recording) => (
             <div key={recording.id} className="recording-item" onClick={() => viewRecording(recording.id)}>
               <div className="recording-time">
-                <span className="date">{moment(recording.timestamp).format('DD-MM-YYYY')}</span>
-                <span className="time">{moment(recording.timestamp).format('h:mm A')}</span>
+                <span className="date">{moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</span>
+                <span className="time">{moment.utc(recording.timestamp).local().format('h:mm A')}</span>
               </div>
               <div className="recording-preview">
-                {/* Simple preview of emotions */}
-                {recording.analysis_data.significant_emotions && (
+                {recording.analysis_data.significant_emotions && recording.analysis_data.significant_emotions.length > 0 ? (
                   <div>
-                    Primary emotion: {recording.analysis_data.significant_emotions[0]?.emotion || 'N/A'}
+                    Primary emotion: {recording.analysis_data.significant_emotions[0]?.emotion || 'Neutral'}
+                    {recording.analysis_data.duration && (
+                      <div className="duration">
+                        Session duration: {Math.round(recording.analysis_data.duration)} seconds
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    No significant emotions detected
                   </div>
                 )}
               </div>
