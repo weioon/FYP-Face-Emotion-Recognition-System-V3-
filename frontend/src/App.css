@@ -137,18 +137,22 @@ footer {
   margin-bottom: 20px;
 }
 
-/* Add these styles to App.css */
+/* Modern camera container */
 .webcam-container {
   position: relative;
   width: 100%;
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
 
 .webcam {
   width: 100%;
   height: auto;
   display: block;
+  background-color: #000;
 }
 
 .emotion-overlay {
@@ -161,21 +165,72 @@ footer {
 }
 
 .emotion-box {
-  position: absolute;
-  border: 2px solid #4CAF50;
-  box-sizing: border-box;
+  border-width: 3px;
+  border-style: solid;
 }
 
 .emotion-label {
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.camera-status-indicator {
   position: absolute;
-  top: -25px;
-  left: 0;
-  background-color: #4CAF50;
+  top: 16px;
+  right: 16px;
+  background-color: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 2px 6px;
-  font-size: 12px;
-  border-radius: 3px;
-  white-space: nowrap;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.camera-status-indicator:before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background-color: var(--accent-color);
+  animation: blink 1s infinite;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+/* Improved spinner */
+.spinner {
+  border: 3px solid rgba(53, 99, 233, 0.1);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border-left-color: var(--primary-color);
+  animation: spin 1s linear infinite;
+}
+
+.processing-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 24px 0;
+}
+
+.processing-indicator p {
+  margin-top: 12px;
+  color: var(--neutral-dark);
+  font-size: 0.875rem;
 }
 
 .controls {
@@ -234,99 +289,139 @@ footer {
   background-color: #d35400;
 }
 
-/* Emotion Dashboard Styles */
+/* Enhanced dashboard UI */
 .emotion-dashboard {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  height: calc(100% - 40px);
+  background-color: var(--neutral-lightest);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  height: calc(100% - 48px);
   overflow-y: auto;
 }
 
 .emotion-dashboard h2 {
   margin-top: 0;
-  font-size: 1.8rem;
-  color: #333;
-  margin-bottom: 15px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--neutral-darkest);
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--neutral-medium);
 }
 
 .emotion-dashboard h3 {
-  margin-top: 25px;
-  font-size: 1.4rem;
-  color: #444;
-  margin-bottom: 10px;
+  margin-top: 28px;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--neutral-darkest);
+  display: flex;
+  align-items: center;
+}
+
+.emotion-dashboard h3:before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+  margin-right: 12px;
 }
 
 .chart-container {
-  margin: 20px 0;
+  margin: 24px 0;
+  padding: 16px;
+  background-color: var(--neutral-light);
+  border-radius: var(--border-radius-sm);
 }
 
+/* Journey Styling */
 .journey-analysis {
-  margin: 25px 0;
+  margin: 32px 0;
 }
 
 .journey-stages {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
 .stage {
-  flex: 1;
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
+  background-color: var(--neutral-light);
+  padding: 20px;
+  border-radius: var(--border-radius-sm);
+  border-top: 3px solid var(--primary-color);
+  transition: transform 0.2s;
+}
+
+.stage:nth-child(1) {
+  border-top-color: var(--primary-color);
+}
+
+.stage:nth-child(2) {
+  border-top-color: var(--secondary-color);
+}
+
+.stage:nth-child(3) {
+  border-top-color: var(--accent-color);
+}
+
+.stage:hover {
+  transform: translateY(-5px);
 }
 
 .stage h4 {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
   margin-top: 0;
-  margin-bottom: 10px;
-  color: #555;
-}
-
-.stage ul, .shifts ul, .recommendations ul {
-  padding-left: 18px;
-  margin: 10px 0;
-}
-
-.stage li, .shifts li, .recommendations li {
-  margin-bottom: 5px;
-}
-
-.interpretation, .shifts, .recommendations {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 6px;
-  margin: 20px 0;
-}
-
-.no-data-message, .recording-message {
+  margin-bottom: 16px;
+  color: var(--neutral-darkest);
   text-align: center;
-  padding: 50px 20px;
 }
 
-.recording-indicator {
-  width: 15px;
-  height: 15px;
-  background-color: red;
-  border-radius: 50%;
-  margin: 20px auto;
-  animation: blink 1s infinite;
+.stage ul {
+  padding-left: 0;
+  list-style-type: none;
 }
 
-@keyframes blink {
-  0% { opacity: 0; }
-  50% { opacity: 1; }
-  100% { opacity: 0; }
+.stage li {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background-color: var(--neutral-lightest);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
+  display: flex;
+  justify-content: space-between;
 }
 
-/* Responsive styles */
-@media (max-width: 992px) {
-  .row {
-    flex-direction: column;
+/* Recommendations styling */
+.recommendations {
+  background-color: var(--neutral-light);
+  padding: 24px;
+  border-radius: var(--border-radius-sm);
+  margin: 24px 0;
+  border-left: 4px solid var(--accent-color);
+}
+
+.recommendation-item {
+  background-color: var(--neutral-lightest);
+  padding: 16px;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s;
+}
+
+.recommendation-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .journey-stages {
+    grid-template-columns: 1fr;
   }
+}
   
   .col-md-7, .col-md-5 {
     flex: 0 0 100%;
@@ -417,4 +512,3 @@ footer {
   font-size: 12px;
 }
 
-}

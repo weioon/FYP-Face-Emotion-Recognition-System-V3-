@@ -18,8 +18,14 @@ const NavBar = ({ setIsAuthenticated }) => {
         <Link to="/dashboard">Face Emotion Recognition</Link>
       </div>
       <div className="nav-links">
-        <Link to="/dashboard">Dashboard</Link>
-        <Link to="/history">History</Link>
+        <Link to="/dashboard" className={location.pathname === "/dashboard" ? "active" : ""}>
+          <i className="nav-icon fas fa-chart-bar"></i>
+          Dashboard
+        </Link>
+        <Link to="/history" className={location.pathname === "/history" ? "active" : ""}>
+          <i className="nav-icon fas fa-history"></i>
+          History
+        </Link>
       </div>
       <div className="nav-user">
         <span className="username">{username}</span>
