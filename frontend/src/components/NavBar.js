@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const NavBar = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const username = localStorage.getItem('username');
 
   const handleLogout = () => {
@@ -15,7 +16,10 @@ const NavBar = ({ setIsAuthenticated }) => {
   return (
     <nav className="navbar">
       <div className="nav-logo">
-        <Link to="/dashboard">Face Emotion Recognition</Link>
+        <Link to="/dashboard">
+          <i className="fas fa-brain nav-logo-icon"></i>
+          EmotionWave
+        </Link>
       </div>
       <div className="nav-links">
         <Link to="/dashboard" className={location.pathname === "/dashboard" ? "active" : ""}>
@@ -28,7 +32,10 @@ const NavBar = ({ setIsAuthenticated }) => {
         </Link>
       </div>
       <div className="nav-user">
-        <span className="username">{username}</span>
+        <span className="username">
+          <i className="fas fa-user-circle user-icon"></i>
+          {username}
+        </span>
         <button onClick={handleLogout} className="logout-btn">Logout</button>
       </div>
     </nav>

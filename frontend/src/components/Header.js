@@ -4,8 +4,13 @@ const Header = () => {
   return (
     <header className="header">
       <div className="header-container">
-        <h1>Live Class Monitoring System</h1>
-        <p>Face Emotion Recognition for Educational Insights</p>
+        <div className="header-logo">
+          <span className="logo-icon">
+            <i className="fas fa-brain"></i>
+          </span>
+          <h1>EmotionWave</h1>
+        </div>
+        <p>Emotion Intelligence for Enhanced Learning</p>
       </div>
     </header>
   );

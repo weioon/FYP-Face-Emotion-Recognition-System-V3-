@@ -1,34 +1,34 @@
 :root {
-  /* Primary educational palette */
-  --primary-color: #3563E9;       /* Modern blue - calm, trustworthy */
-  --secondary-color: #16B1FF;     /* Bright blue - engaging, tech-oriented */
-  --accent-color: #54D62C;        /* Green - success, growth */
-  --warning-color: #FFC107;       /* Amber - attention */
-  --danger-color: #FF484A;        /* Red - errors, alerts */
+  /* Education-focused color palette */
+  --primary-color: #2E5077;       /* Deep blue - scholarly, trustworthy */
+  --secondary-color: #4D7C8A;     /* Teal blue - calm, educational */
+  --accent-color: #7AB317;        /* Green - growth, success */
+  --warning-color: #F19953;       /* Warm orange - attention */
+  --danger-color: #C73E1D;        /* Brick red - errors, alerts */
   
   /* Neutrals */
   --neutral-lightest: #FFFFFF;
-  --neutral-light: #F5F7FA;
-  --neutral-medium: #E9ECEF;
-  --neutral-dark: #8D9297;
-  --neutral-darkest: #212B36;
+  --neutral-light: #F4F6F9;
+  --neutral-medium: #E0E5EC;
+  --neutral-dark: #7A8792;
+  --neutral-darkest: #2C3E50;
 
-  /* Emotion colors */
-  --emotion-happy: #54D62C;
-  --emotion-sad: #58AFED;
-  --emotion-angry: #FF484A;
-  --emotion-neutral: #8D9297;
-  --emotion-surprise: #FFC107;
-  --emotion-fear: #7A5AF8;
-  --emotion-disgust: #00A389;
+  /* Emotion colors - more sophisticated palette */
+  --emotion-happy: #7AB317;
+  --emotion-sad: #4D7C8A;
+  --emotion-angry: #C73E1D;
+  --emotion-neutral: #7A8792;
+  --emotion-surprise: #F19953;
+  --emotion-fear: #6155A6;
+  --emotion-disgust: #2D936C;
 
   /* Typography */
   --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(33, 43, 54, 0.08);
-  --shadow-md: 0 8px 16px rgba(33, 43, 54, 0.12);
-  --shadow-lg: 0 12px 24px rgba(33, 43, 54, 0.16);
+  --shadow-sm: 0 2px 8px rgba(44, 62, 80, 0.08);
+  --shadow-md: 0 8px 16px rgba(44, 62, 80, 0.12);
+  --shadow-lg: 0 12px 24px rgba(44, 62, 80, 0.16);
   
   /* Border radius */
   --border-radius-sm: 6px;
