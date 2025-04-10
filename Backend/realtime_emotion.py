@@ -30,297 +30,63 @@ yolo_model = YOLO('yolov8n.pt')
 
 class RealtimeEmotionDetector:
     def __init__(self, debug_mode=False):
+        # Use a single consistent variable name for emotion records
+        self.emotion_records = []
         self.recording = False
         self.start_time = None
-        self.emotion_data = []
+        self.end_time = None
         self.current_emotion_data = []
         self.debug_mode = debug_mode
-        self.yolo_model = YOLO('yolov8n.pt')
-        self.sad_neutral_ratio_threshold = 0.3  # Default value
-        self.emotion_records = []
-        self.end_time = None
-        # Threshold for considering an emotion significant
-        self.significance_threshold = 10.0  # percentage
-        # Threshold for reclassifying neutral as sad
-        self.sad_neutral_ratio_threshold = 0.4  # If sad score is 40% of neutral, classify as sad
-
+        print("RealtimeEmotionDetector initialized")
+    
     def start_recording(self):
-        self.emotion_records = []
+        """Start a new recording session"""
         self.recording = True
         self.start_time = time.time()
-        print("Recording started...")
-
+        self.emotion_records = []  # Clear previous records
+        print(f"Recording started at {self.start_time}")
+        return True
+    
     def stop_recording(self):
+        """Stop the current recording session"""
         self.recording = False
         self.end_time = time.time()
-        print("Recording stopped.")
-
-    def analyze_emotions(self):
-        """Analyze recorded emotion data and provide insights"""
-        duration = self.end_time - self.start_time if self.start_time and self.end_time else 0
-        
-        # If no emotions were recorded, return a helpful message
-        if not self.emotion_data or len(self.emotion_data) < 3:
-            print("No emotions were recorded during the session.")
-            return {
-                "error": "No emotions were recorded. Please try again and make sure your face is visible.",
-                "duration": duration,
-                "stats": {"neutral": 100.0},  # Provide fallback data for frontend
-                "emotion_journey": {
-                    "beginning": {"neutral": 100.0},
-                    "middle": {"neutral": 100.0},
-                    "end": {"neutral": 100.0}
-                }
-            }
-            
-        # Continue with regular analysis...
-        # (rest of your existing analyze_emotions code)
-        if not self.emotion_records:
-            return "No emotions recorded."
-
-        # Calculate basic stats
-        emotion_counts = {}
-        for record in self.emotion_records:
-            emotion = record['emotion']
-            if emotion in emotion_counts:
-                emotion_counts[emotion] += 1
-            else:
-                emotion_counts[emotion] = 1
-
-        total_records = len(self.emotion_records)
-        total_duration = self.end_time - self.start_time
-        
-        # Calculate percentages
-        emotion_percentages = {emotion: (count / total_records * 100) 
-                              for emotion, count in emotion_counts.items()}
-        
-        # Split recording into segments
-        segment_size = max(len(self.emotion_records) // 3, 1)
-        beginning = self.emotion_records[:segment_size]
-        middle = self.emotion_records[segment_size:2*segment_size]
-        end = self.emotion_records[2*segment_size:]
-        
-        # Get significant emotions in each segment
-        beginning_emotions = self._get_significant_emotions(beginning)
-        middle_emotions = self._get_significant_emotions(middle)
-        end_emotions = self._get_significant_emotions(end)
-        
-        # Calculate emotional patterns and momentum
-        emotion_journey = {
-            "beginning": beginning_emotions,
-            "middle": middle_emotions,
-            "end": end_emotions
-        }
-        
-        # Get significant overall emotions
-        significant_emotions = {}
-        for emotion, percentage in emotion_percentages.items():
-            if percentage >= self.significance_threshold:
-                significant_emotions[emotion] = percentage
-        
-        # Detailed interpretation
-        interpretation = self._interpret_emotional_journey(emotion_journey, emotion_percentages)
-        
-        # Identify emotional shifts and patterns
-        significant_shifts = self._identify_emotional_shifts(emotion_journey)
-        
-        # Educational recommendations
-        educational_recommendations = self._generate_educational_recommendations(emotion_journey, significant_emotions)
-        
-        return {
-            "stats": emotion_percentages,
-            "duration": total_duration,
-            "emotion_journey": emotion_journey,
-            "significant_emotions": significant_emotions,
-            "interpretation": interpretation,
-            "significant_shifts": significant_shifts,
-            "educational_recommendations": educational_recommendations
-        }
+        duration = self.end_time - self.start_time if self.start_time else 0
+        print(f"Recording stopped after {duration:.2f}s with {len(self.emotion_records)} emotions recorded")
+        return True
     
-    def _get_significant_emotions(self, records):
-        if not records:
-            return {}
+    def detect_emotions_in_frame(self, frame_data):
+        """Detect emotions in a single frame - used by the detect_emotion endpoint"""
+        frame = self.decode_image(frame_data)
+        processed_frame = self.process_frame(frame)
         
-        emotion_counts = {}
-        for record in records:
-            emotion = record['emotion']
-            if emotion in emotion_counts:
-                emotion_counts[emotion] += 1
-            else:
-                emotion_counts[emotion] = 1
-        
-        total = len(records)
-        significant = {}
-        for emotion, count in emotion_counts.items():
-            percentage = (count / total) * 100
-            if percentage >= self.significance_threshold:
-                significant[emotion] = percentage
-                
-        return significant
+        # Return the current emotions that were just detected
+        return self.current_emotion_data
     
-    def _identify_emotional_shifts(self, emotion_journey):
-        shifts = []
-        
-        # Check for emotions that appeared or disappeared
-        all_segments = ["beginning", "middle", "end"]
-        for i in range(len(all_segments)-1):
-            current_segment = all_segments[i]
-            next_segment = all_segments[i+1]
-            
-            current_emotions = set(emotion_journey[current_segment].keys())
-            next_emotions = set(emotion_journey[next_segment].keys())
-            
-            appeared = next_emotions - current_emotions
-            disappeared = current_emotions - next_emotions
-            
-            for emotion in appeared:
-                shifts.append(f"{emotion} emerged in the {next_segment} segment")
-            
-            for emotion in disappeared:
-                shifts.append(f"{emotion} diminished after the {current_segment} segment")
-                
-            # Check for significant increases or decreases
-            for emotion in current_emotions.intersection(next_emotions):
-                current_pct = emotion_journey[current_segment][emotion]
-                next_pct = emotion_journey[next_segment][emotion]
-                
-                if next_pct >= current_pct * 1.5:
-                    shifts.append(f"{emotion} significantly increased from {current_segment} to {next_segment}")
-                elif next_pct <= current_pct * 0.6:
-                    shifts.append(f"{emotion} significantly decreased from {current_segment} to {next_segment}")
-        
-        return shifts
-    
-    def _interpret_emotional_journey(self, emotion_journey, overall_emotions):
-        interpretation = "Based on the emotional patterns observed:\n\n"
-        
-        # Analyze beginning state
-        if emotion_journey["beginning"]:
-            beginning_emotions = emotion_journey["beginning"]
-            interpretation += "At the beginning: "
-            
-            if "Happy" in beginning_emotions:
-                interpretation += "The student started with a positive mindset, showing engagement and readiness to learn. "
-            if "Neutral" in beginning_emotions:
-                interpretation += "The student began in a calm, receptive state, ready to absorb information. "
-                # Add nuance about potential hidden emotions
-                interpretation += "Note that neutral expressions may sometimes mask mild confusion or uncertainty. "
-            if "Angry" in beginning_emotions:
-                interpretation += "The student may have started with frustration or resistance to the subject matter. "
-            if "Sad" in beginning_emotions:
-                interpretation += "The student showed signs of disengagement or concern at the start. "
-            if "Surprise" in beginning_emotions:
-                interpretation += "The student showed curiosity or was intrigued by early content. "
-            if "Fear" in beginning_emotions:
-                interpretation += "The student may have felt anxiety or apprehension about the topic initially. "
-        
-        # Analyze middle state
-        if emotion_journey["middle"]:
-            middle_emotions = emotion_journey["middle"]
-            interpretation += "\n\nDuring the middle: "
-            
-            if "Happy" in middle_emotions:
-                interpretation += "The student experienced moments of understanding or connection with the material. "
-            if "Neutral" in middle_emotions:
-                interpretation += "The student maintained steady attention and focus. "
-            if "Angry" in middle_emotions:
-                interpretation += "The student encountered concepts that were challenging or frustrating. "
-            if "Sad" in middle_emotions:
-                interpretation += "The student may have struggled with comprehension or engagement. "
-            if "Surprise" in middle_emotions:
-                interpretation += "The student encountered unexpected concepts that captured their attention. "
-            if "Fear" in middle_emotions:
-                interpretation += "The student may have felt uncertain about their understanding. "
-        
-        # Analyze end state
-        if emotion_journey["end"]:
-            end_emotions = emotion_journey["end"]
-            interpretation += "\n\nBy the end: "
-            
-            if "Happy" in end_emotions:
-                interpretation += "The student achieved a sense of accomplishment or satisfaction. "
-            if "Neutral" in end_emotions:
-                interpretation += "The student maintained composed attention through the conclusion. "
-            if "Angry" in end_emotions:
-                interpretation += "The student may have been left with unresolved challenges or disagreements with the content. "
-            if "Sad" in end_emotions:
-                interpretation += "The student may have felt disappointed or unconfident about their learning outcome. "
-            if "Surprise" in end_emotions:
-                interpretation += "The student experienced new insights or revelations in the final stages. "
-            if "Fear" in end_emotions:
-                interpretation += "The student may have concerns about applying or remembering the material. "
-        
-        # Analyze emotional patterns across the session
-        interpretation += "\n\nOverall pattern: "
-        if "Neutral" in overall_emotions and overall_emotions["Neutral"] > 40:
-            interpretation += "High levels of neutral expression dominated the session. This may indicate focused attention, but in educational settings could also represent mild disengagement or difficulty expressing emotions. "
-        if "Happy" in overall_emotions and "Neutral" in overall_emotions and overall_emotions["Happy"] > 15:
-            interpretation += "The session maintained a generally positive atmosphere with good engagement. "
-        if "Sad" in overall_emotions and overall_emotions["Sad"] > 10:
-            interpretation += "Periods of sadness or confusion were detected, suggesting potential difficulties with some concepts. "
-        if "Angry" in overall_emotions and overall_emotions["Angry"] > 15:
-            interpretation += "Frustration was a significant factor throughout the session, possibly indicating challenging content. "
-        if "Surprise" in overall_emotions and "Happy" in overall_emotions:
-            interpretation += "The learning process included moments of discovery that led to positive engagement. "
-        
-        return interpretation
-    
-    def _generate_educational_recommendations(self, emotion_journey, significant_emotions):
-        recommendations = []
-        
-        # Check for persistent negative emotions
-        if "Angry" in significant_emotions and significant_emotions["Angry"] > 15:
-            if "Angry" in emotion_journey["end"]:
-                recommendations.append("Consider revisiting difficult concepts that may have caused frustration.")
-            recommendations.append("Break down complex topics into smaller, more digestible segments.")
-        
-        # Check for engagement level
-        if "Neutral" in significant_emotions and significant_emotions["Neutral"] > 40:
-            recommendations.append("Incorporate more interactive elements to increase active engagement.")
-        
-        # Check for positive outcomes
-        if "Happy" in emotion_journey["end"]:
-            recommendations.append("The positive ending suggests effective learning - build on this success in future sessions.")
-        
-        # Check for surprise moments
-        if "Surprise" in significant_emotions:
-            recommendations.append("The moments of surprise indicate effective hook points - consider expanding on these teaching techniques.")
-        
-        # Check for mixed emotions
-        if len(significant_emotions) >= 3:
-            recommendations.append("The varied emotional response suggests an engaging but challenging session. Consider providing additional resources for reinforcement.")
-        
-        # Check for emotional shifts
-        beginning_emotions = set(emotion_journey["beginning"].keys())
-        end_emotions = set(emotion_journey["end"].keys())
-        
-        if "Sad" in beginning_emotions and "Happy" in end_emotions:
-            recommendations.append("The shift from negative to positive emotion suggests successful scaffolding that helped overcome initial difficulties.")
-        
-        if "Happy" in beginning_emotions and "Sad" in end_emotions:
-            recommendations.append("Consider revisiting the later content that may have caused confusion after initial understanding.")
-        
-        return recommendations
-
     def process_frame(self, frame):
         """Process a single frame and detect emotions"""
         try:
             # Make a copy to avoid modifying the original
             img = frame.copy()
             
-            # Resize image to speed up processing (50% smaller)
+            # Resize image for faster processing
             scale = 0.5
             small_frame = cv2.resize(img, (0, 0), fx=scale, fy=scale)
             
             emotions_detected = []
+            face_detected = False
             
-            # Use DeepFace with lighter settings
             try:
+                # Print frame processing timestamp for debugging
+                current_time = time.time()
+                elapsed = current_time - self.start_time if self.recording and self.start_time else 0
+                print(f"Processing frame at {elapsed:.2f}s from start")
+                
                 results = DeepFace.analyze(
                     small_frame,
                     actions=['emotion'],
-                    enforce_detection=False,  # Don't enforce face detection
-                    detector_backend='opencv',  # Faster detector
+                    enforce_detection=False,
+                    detector_backend='opencv',
                     silent=True
                 )
                 
@@ -329,18 +95,19 @@ class RealtimeEmotionDetector:
                     results = [results]
                 
                 for result in results:
-                    if 'emotion' in result and 'region' in result:
-                        # Get face location
-                        x = int(result['region']['x'] / scale)
-                        y = int(result['region']['y'] / scale)
-                        w = int(result['region']['w'] / scale)
-                        h = int(result['region']['h'] / scale)
+                    if 'emotion' in result:
+                        face_detected = True
+                        # Extract face location
+                        x = int(result['region']['x'] / scale) if 'region' in result else 0
+                        y = int(result['region']['y'] / scale) if 'region' in result else 0
+                        w = int(result['region']['w'] / scale) if 'region' in result else 100
+                        h = int(result['region']['h'] / scale) if 'region' in result else 100
                         
-                        # Extract emotion data
+                        # Extract emotions
                         emotions_dict = result['emotion']
                         dominant_emotion = result['dominant_emotion']
                         
-                        # Format emotion scores as percentages
+                        # Format emotion scores
                         emotion_scores = {k: float(v) for k, v in emotions_dict.items()}
                         
                         emotions_detected.append({
@@ -349,21 +116,36 @@ class RealtimeEmotionDetector:
                             "emotion_scores": emotion_scores
                         })
                         
-                        # Draw rectangle on frame for visualization
+                        # Draw rectangle for visualization
                         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                         
-                        # IMPORTANT: If recording, store the emotion data
+                        # Record emotion data when recording is active
                         if self.recording:
-                            timestamp = time.time() - self.start_time if self.start_time else 0
-                            self.emotion_data.append({
+                            timestamp = current_time - self.start_time if self.start_time else 0
+                            
+                            # Always make first letter uppercase for consistency
+                            emotion_name = dominant_emotion.capitalize()
+                            
+                            # Add the record to emotion_records
+                            self.emotion_records.append({
                                 "timestamp": timestamp,
-                                "emotion": dominant_emotion,
+                                "emotion": emotion_name,
                                 "score": emotion_scores.get(dominant_emotion.lower(), 0)
                             })
-                            print(f"Recorded emotion: {dominant_emotion} at {timestamp:.2f}s")
+                            print(f"Recorded emotion: {emotion_name} at {timestamp:.2f}s - Total: {len(self.emotion_records)}")
             
             except Exception as e:
                 print(f"DeepFace error: {e}")
+            
+            # Record neutral emotion if no face detected during recording
+            if self.recording and not face_detected:
+                timestamp = time.time() - self.start_time if self.start_time else 0
+                print(f"No face detected - recording neutral at {timestamp:.2f}s")
+                self.emotion_records.append({
+                    "timestamp": timestamp,
+                    "emotion": "Neutral",
+                    "score": 100.0
+                })
             
             # Store current emotion data for API access
             self.current_emotion_data = emotions_detected
@@ -371,128 +153,208 @@ class RealtimeEmotionDetector:
             return frame
         except Exception as e:
             print(f"Error in process_frame: {e}")
+            traceback.print_exc()
             return frame
-
-    def calibrate_emotion_sensitivity(self, sad_neutral_ratio=None):
-        """
-        Calibrate the sensitivity of emotion classification.
-        
-        Parameters:
-        - sad_neutral_ratio: float value between 0.1-1.0 that determines how easily
-          Neutral emotions are reclassified as Sad. Lower values make the system more
-          sensitive to detecting sadness.
-        """
-        if sad_neutral_ratio is not None and 0.1 <= sad_neutral_ratio <= 1.0:
-            self.sad_neutral_ratio_threshold = sad_neutral_ratio
-            print(f"Neutral-to-Sad sensitivity threshold set to: {sad_neutral_ratio}")
-            print(f"Lower values will classify more neutral expressions as sad.")
-        else:
-            print("Invalid sad_neutral_ratio. Please use a value between 0.1 and 1.0")
-
-    def detect_emotions_in_frame(self, frame):
-        """Detect faces and emotions in a single frame"""
+    
+    def decode_image(self, base64_image):
+        """Decode a base64 image to a CV2 image (numpy array)"""
         try:
-            # Get a copy of the frame
-            img = frame.copy()
-            
-            # Convert to RGB (DeepFace expects RGB)
-            rgb_frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            
-            # Use DeepFace to detect emotions
-            results = DeepFace.analyze(
-                rgb_frame, 
-                actions=['emotion'],
-                enforce_detection=False,
-                silent=True,
-                detector_backend='opencv'  # Use OpenCV for more consistent face detection
-            )
-            
-            # Normalize results structure
-            if not isinstance(results, list):
-                results = [results]
+            # For pure base64 string (without data:image prefix)
+            if isinstance(base64_image, np.ndarray):
+                # If it's already a numpy array, return it directly
+                return base64_image
                 
-            face_emotions = []
+            # Handle string or byte input
+            if isinstance(base64_image, str):
+                # Remove data:image prefix if present
+                if ',' in base64_image:
+                    base64_image = base64_image.split(',')[1]
+                    
+                image_data = base64.b64decode(base64_image)
+            elif isinstance(base64_image, bytes):
+                image_data = base64_image
+            else:
+                raise ValueError("Unsupported image format")
+                
+            # Convert to numpy array and then to CV2 image
+            nparr = np.frombuffer(image_data, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
-            for result in results:
-                if 'emotion' in result and 'region' in result:
-                    # Get face location
-                    face_x = result['region']['x']
-                    face_y = result['region']['y']
-                    face_w = result['region']['w']
-                    face_h = result['region']['h']
-                    
-                    # Ensure coordinates are integers
-                    face_x = int(face_x)
-                    face_y = int(face_y)
-                    face_w = int(face_w)
-                    face_h = int(face_h)
-                    
-                    # Get emotions
-                    emotions_dict = result['emotion']
-                    dominant_emotion = result['dominant_emotion']
-                    
-                    face_emotions.append({
-                        "face_location": [face_x, face_y, face_x + face_w, face_y + face_h],
-                        "dominant_emotion": dominant_emotion,
-                        "emotion_scores": emotions_dict
-                    })
-            
-            return face_emotions
+            return img
         except Exception as e:
-            print(f"Error in detect_emotions_in_frame: {str(e)}")
-            return []
-
-    def _interpret_emotional_journey(self, emotion_journey, emotion_stats):
-        """Generate a detailed pedagogical interpretation of the emotional journey"""
-        interpretation = "Analysis of Learning Engagement Patterns:\n\n"
+            print(f"Error decoding image: {e}")
+            return None
+    
+    def analyze_emotions(self):
+        """Analyze recorded emotion data and provide insights"""
+        print(f"Starting emotion analysis with {len(self.emotion_records)} records")
         
-        # Beginning phase analysis
-        if emotion_journey["beginning"]:
-            beginning_emotions = emotion_journey["beginning"]
-            interpretation += "**Initial Learning Phase:**\n"
+        # Calculate duration
+        duration = self.end_time - self.start_time if self.start_time and self.end_time else 0
+        
+        # Basic error handling - return default structure if no data
+        if not self.emotion_records or len(self.emotion_records) < 3:
+            print("Not enough emotion records for analysis")
+            return {
+                "error": "No emotions were recorded. Please try again and make sure your face is visible.",
+                "duration": duration,
+                "stats": {"Neutral": 100.0},
+                "emotion_journey": {
+                    "beginning": {"Neutral": 100.0},
+                    "middle": {"Neutral": 100.0},
+                    "end": {"Neutral": 100.0}
+                }
+            }
+        
+        try:
+            # Count emotions
+            emotion_counts = {}
+            for record in self.emotion_records:
+                emotion = record["emotion"]
+                emotion_counts[emotion] = emotion_counts.get(emotion, 0) + 1
             
-            if "happy" in beginning_emotions and beginning_emotions["happy"] > 25:
-                interpretation += "• Strong positive engagement detected (%.1f%%), indicating effective introduction of material. Research suggests this receptive state enhances information retention and cognitive processing.\n" % beginning_emotions["happy"]
-            if "neutral" in beginning_emotions and beginning_emotions["neutral"] > 40:
-                interpretation += "• Predominant neutral expressions (%.1f%%) suggest attentive observation. Note that in educational contexts, extended neutral engagement may indicate either focused concentration or passive reception requiring verification through interactive elements.\n" % beginning_emotions["neutral"]
-            if "angry" in beginning_emotions and beginning_emotions["angry"] > 15:
-                interpretation += "• Significant frustration indicators (%.1f%%) during initial content exposure. This often signals conceptual barriers or misalignment with learner expectations that may require immediate clarification.\n" % beginning_emotions["angry"]
+            total_records = len(self.emotion_records)
             
-            # Add more detailed interpretations for other emotions
-        
-        # Similar enhancements for middle and end phases
-        
-        # Analyze learning trajectory patterns
-        if "happy" in emotion_journey["beginning"] and "happy" in emotion_journey["end"]:
-            if emotion_journey["beginning"]["happy"] < emotion_journey["end"]["happy"]:
-                interpretation += "\n**Positive Learning Trajectory:** The %.1f%% increase in positive engagement suggests successful conceptual development and growing mastery over the session duration.\n" % (emotion_journey["end"]["happy"] - emotion_journey["beginning"]["happy"])
-        
-        # Add more pattern analysis
-        
-        return interpretation
+            # Calculate percentages
+            emotion_percentages = {
+                emotion: (count / total_records) * 100
+                for emotion, count in emotion_counts.items()
+            }
+            
+            # Get dominant emotion
+            dominant_emotion = max(emotion_counts.items(), key=lambda x: x[1])[0]
+            
+            # Split the timeline into three parts
+            beginning_idx = max(1, int(total_records * 0.25))
+            middle_idx = max(1, int(total_records * 0.5)) 
+            end_idx = max(1, int(total_records * 0.75))
+            
+            beginning_records = self.emotion_records[:beginning_idx]
+            middle_records = self.emotion_records[beginning_idx:end_idx]
+            end_records = self.emotion_records[end_idx:]
+            
+            # Analyze each segment
+            beginning_emotions = {}
+            for record in beginning_records:
+                emotion = record["emotion"]
+                beginning_emotions[emotion] = beginning_emotions.get(emotion, 0) + 1
+            
+            middle_emotions = {}
+            for record in middle_records:
+                emotion = record["emotion"]
+                middle_emotions[emotion] = middle_emotions.get(emotion, 0) + 1
+                
+            end_emotions = {}
+            for record in end_records:
+                emotion = record["emotion"]
+                end_emotions[emotion] = end_emotions.get(emotion, 0) + 1
+            
+            # Calculate percentages for each segment
+            beginning_percentages = {
+                emotion: (count / len(beginning_records)) * 100
+                for emotion, count in beginning_emotions.items()
+            }
+            
+            middle_percentages = {
+                emotion: (count / len(middle_records)) * 100
+                for emotion, count in middle_emotions.items()
+            }
+            
+            end_percentages = {
+                emotion: (count / len(end_records)) * 100
+                for emotion, count in end_emotions.items()
+            }
+            
+            # Create interpretation and recommendations based on emotion journey
+            interpretation = self._generate_interpretation(beginning_percentages, middle_percentages, end_percentages)
+            recommendations = self._generate_recommendations(emotion_percentages, dominant_emotion)
+            
+            # Format for analysis result
+            analysis_result = {
+                "duration": duration,
+                "dominant_emotion": dominant_emotion,
+                "stats": emotion_percentages,
+                "significant_emotions": [
+                    {"emotion": emotion, "percentage": percentage}
+                    for emotion, percentage in emotion_percentages.items()
+                    if percentage > 5.0  # Only include emotions above 5%
+                ],
+                "emotion_journey": {
+                    "beginning": beginning_percentages,
+                    "middle": middle_percentages,
+                    "end": end_percentages
+                },
+                "interpretation": interpretation,
+                "educational_recommendations": recommendations
+            }
+            
+            print(f"Analysis completed successfully with dominant emotion: {dominant_emotion}")
+            return analysis_result
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"Error in analyze_emotions: {str(e)}")
+            
+            # Return error but with consistent data structure
+            return {
+                "error": f"Analysis error: {str(e)}",
+                "duration": duration,
+                "stats": {"Neutral": 100.0},
+                "emotion_journey": {
+                    "beginning": {"Neutral": 100.0},
+                    "middle": {"Neutral": 100.0},
+                    "end": {"Neutral": 100.0}
+                }
+            }
 
-    def _generate_educational_recommendations(self, emotion_journey, significant_emotions):
-        recommendations = []
-        
-        # Evidence-based recommendations for predominant emotions
-        if "Angry" in significant_emotions and significant_emotions["Angry"] > 15:
-            recommendations.append("**Addressing Cognitive Friction:** The %.1f%% frustration indicators suggest conceptual obstacles. Consider implementing the 'Muddiest Point' technique - request students to identify the most confusing aspect, then address these specific points immediately." % significant_emotions["Angry"])
-            recommendations.append("**Scaffolded Progression:** Break the challenging concept into smaller, sequential components with immediate application opportunities after each segment.")
-        
-        # Recommendations based on emotional transitions
-        beginning_set = set(emotion_journey["beginning"].keys())
-        end_set = set(emotion_journey["end"].keys())
-        
-        if "Neutral" in beginning_set and "Happy" in end_set:
-            recommendations.append("**Effective Engagement Pattern:** The transition from neutral to positive emotions indicates successful cognitive activation. This teaching sequence appears effective and should be documented as a successful instructional pattern.")
-        
-        # Recommendations for mixed emotions
-        if "Happy" in significant_emotions and "Surprise" in significant_emotions:
-            recommendations.append("**Leverage Cognitive Curiosity:** The combination of surprise and enjoyment indicates moments of productive cognitive dissonance. These 'desirable difficulties' should be identified and potentially expanded in future sessions.")
-        
-        # Add more detailed recommendations
-        
-        return recommendations
+    def _generate_interpretation(self, beginning, middle, end):
+        """Generate interpretation based on emotion journey"""
+        try:
+            # Simple interpretation based on emotion shifts
+            beginning_emotion = max(beginning.items(), key=lambda x: x[1])[0] if beginning else "Neutral"
+            middle_emotion = max(middle.items(), key=lambda x: x[1])[0] if middle else "Neutral"
+            end_emotion = max(end.items(), key=lambda x: x[1])[0] if end else "Neutral"
+            
+            interpretation = f"Your emotional journey started with {beginning_emotion}, "
+            interpretation += f"moved to {middle_emotion} in the middle, "
+            interpretation += f"and ended with {end_emotion}. "
+            
+            if beginning_emotion == middle_emotion == end_emotion:
+                interpretation += "Your emotional state remained consistent throughout the session."
+            elif beginning_emotion != end_emotion:
+                interpretation += f"Your emotion changed from {beginning_emotion} to {end_emotion}, which suggests a significant emotional shift during the session."
+            
+            return interpretation
+        except Exception as e:
+            print(f"Error generating interpretation: {e}")
+            return "Unable to generate interpretation due to insufficient data."
+
+    def _generate_recommendations(self, emotions, dominant_emotion):
+        """Generate educational recommendations based on emotions"""
+        try:
+            recommendations = []
+            
+            if dominant_emotion == "Happy" or dominant_emotion == "Surprise":
+                recommendations.append("Your positive engagement is excellent! Consider tackling more challenging material.")
+                recommendations.append("Try explaining concepts to others to reinforce your understanding.")
+            elif dominant_emotion == "Sad":
+                recommendations.append("Consider taking short breaks to refresh your mind.")
+                recommendations.append("Try connecting difficult concepts to topics you enjoy.")
+            elif dominant_emotion == "Fear" or dominant_emotion == "Disgust":
+                recommendations.append("Break down complex topics into smaller, manageable parts.")
+                recommendations.append("Consider group study sessions to gain different perspectives.")
+            elif dominant_emotion == "Angry":
+                recommendations.append("Take a short break and return with a fresh perspective.")
+                recommendations.append("Try a different learning approach or resource for this topic.")
+            else:  # Neutral
+                recommendations.append("Consider more interactive learning methods to increase engagement.")
+                recommendations.append("Try setting specific learning goals to measure progress.")
+            
+            return recommendations
+        except Exception as e:
+            print(f"Error generating recommendations: {e}")
+            return ["Unable to generate personalized recommendations."]
 
 detector = RealtimeEmotionDetector()
 

@@ -16,7 +16,7 @@ import cv2
 # Import your modules
 from db import get_db, engine, Base
 from models import User, Recording
-from lightweight_detector import LightweightDetector
+from realtime_emotion import RealtimeEmotionDetector
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +47,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Initialize detector
 logger.info("Initializing LightweightDetector")
-detector = LightweightDetector()
+detector = RealtimeEmotionDetector()
 logger.info("LightweightDetector initialized")
 
 # Create database tables
@@ -247,7 +247,7 @@ async def detect_emotion(request: ImageRequest, current_user: User = Depends(get
             raise HTTPException(status_code=400, detail="Invalid image data")
             
         # Use the lightweight detector instead
-        emotions = detector.detect_emotions_lightweight(frame)
+        emotions = detector.detect_emotions_in_frame(frame)
         
         return {
             "status": "success",
