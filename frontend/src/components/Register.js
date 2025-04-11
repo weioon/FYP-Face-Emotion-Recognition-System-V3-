@@ -52,7 +52,13 @@ const Register = () => {
   return (
     <div className="auth-page">
       <div className="auth-image">
-        <img src="https://i.imgur.com/tPKcgGE.png" alt="Educational Analytics" />
+        <img src="https://i.imgur.com/oQvzMdK.jpg" alt="Educational Emotion Analysis" />
+        <div className="auth-image-overlay">
+          <div className="auth-image-content">
+            <h2>Join EmotionWave</h2>
+            <p>Transform your teaching with emotion analytics</p>
+          </div>
+        </div>
       </div>
       <div className="auth-container">
         <div className="auth-logo">

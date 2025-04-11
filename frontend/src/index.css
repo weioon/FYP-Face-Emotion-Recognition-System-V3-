@@ -1,9 +1,10 @@
 :root {
-  /* Modern dark theme color palette */
-  --primary-color: #1A2238;       /* Dark blue - main background */
+  /* Modern futuristic color palette */
+  --primary-color: #0a1022;       /* Deep navy - main background */
   --secondary-color: #0F3460;     /* Secondary blue - elements */
-  --accent-color: #16FF00;        /* Neon green - highlights/actions */
-  --warning-color: #FF6B6B;       /* Warm red - attention */
+  --accent-color: #16FF00;        /* Electric green - highlights/actions */
+  --secondary-accent: #00b3ff;    /* Bright blue - secondary highlights */
+  --warning-color: #FF6B6B;       /* Coral red - attention */
   --danger-color: #E94560;        /* Bright red - errors, alerts */
   
   /* Neutrals */
@@ -14,9 +15,9 @@
   --neutral-darkest: #0B101E;
 
   /* Emotion colors - vibrant modern palette */
-  --emotion-happy: #16FF00;       /* Neon green */
-  --emotion-sad: #4D7CFF;         /* Bright blue */
-  --emotion-angry: #FF6B6B;       /* Vibrant red */
+  --emotion-happy: #16FF00;       /* Electric green */
+  --emotion-sad: #00b3ff;         /* Bright blue */
+  --emotion-angry: #FF6B6B;       /* Coral red */
   --emotion-neutral: #9BA4B4;     /* Cool gray */
   --emotion-surprise: #FF9551;    /* Orange */
   --emotion-fear: #9C72FF;        /* Purple */
@@ -29,11 +30,12 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
   --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
   
   /* Border radius */
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 16px;
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 18px;
   --border-radius-xl: 24px;
 }
 
@@ -51,5 +53,5 @@ code {
     monospace;
 }
 
-/* Import Poppins font for a modern, clean look */
+/* Import Poppins font */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');

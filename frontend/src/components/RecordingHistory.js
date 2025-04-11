@@ -56,6 +56,16 @@ const RecordingHistory = () => {
   const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
   const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
+  // Helper function to generate visible page numbers
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    // Always generate all page numbers from 1 to totalPages
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+    return pageNumbers;
+  };
+
   if (loading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error-message">{error}</div>;
 
@@ -84,13 +94,13 @@ const RecordingHistory = () => {
                     <tr key={recording.id}>
                       <td>
                         <div className="date-cell">
-                          <i className="far fa-calendar-alt mr-2"></i>
+                          <i className="far fa-calendar-alt"></i>
                           {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}
                         </div>
                       </td>
                       <td>
                         <div className="time-cell">
-                          <i className="far fa-clock mr-2"></i>
+                          <i className="far fa-clock"></i>
                           {moment.utc(recording.timestamp).local().format('h:mm:ss A')}
                         </div>
                       </td>
@@ -110,7 +120,7 @@ const RecordingHistory = () => {
                           onClick={() => viewRecording(recording.id)}
                           className="view-btn-table"
                         >
-                          <i className="fas fa-eye mr-1"></i> View
+                          <i className="fas fa-eye"></i> View
                         </button>
                       </td>
                     </tr>
@@ -125,18 +135,22 @@ const RecordingHistory = () => {
                   onClick={prevPage} 
                   disabled={currentPage === 1}
                   className="pagination-btn"
+                  aria-label="Previous page"
                 >
-                  Prev
+                  <i className="fas fa-chevron-left"></i> Prev
                 </button>
                 
                 <div className="page-numbers">
-                  {Array.from({ length: totalPages }, (_, i) => (
+                  {/* Make sure all page numbers are displayed */}
+                  {getPageNumbers().map(number => (
                     <button
-                      key={i + 1}
-                      onClick={() => paginate(i + 1)}
-                      className={`page-number ${currentPage === i + 1 ? 'active' : ''}`}
+                      key={number}
+                      onClick={() => paginate(number)}
+                      className={`page-number ${currentPage === number ? 'active' : ''}`}
+                      aria-label={`Page ${number}`}
+                      aria-current={currentPage === number ? 'page' : undefined}
                     >
-                      {i + 1}
+                      {number}
                     </button>
                   ))}
                 </div>
@@ -145,8 +159,9 @@ const RecordingHistory = () => {
                   onClick={nextPage} 
                   disabled={currentPage === totalPages}
                   className="pagination-btn"
+                  aria-label="Next page"
                 >
-                  Next
+                  Next <i className="fas fa-chevron-right"></i>
                 </button>
               </div>
             )}

@@ -139,7 +139,7 @@ const RecordingDetail = () => {
       </div>
 
       <button onClick={() => navigate('/history')} className="back-btn">
-        Back to History
+        <i className="fas fa-arrow-left"></i> Back to History
       </button>
     </div>
   );

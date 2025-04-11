@@ -35,7 +35,13 @@ const Login = ({ setIsAuthenticated }) => {
   return (
     <div className="auth-page">
       <div className="auth-image">
-        <img src="https://i.imgur.com/8PGcYzn.png" alt="Education Technology" />
+        <img src="https://i.imgur.com/RjPQDSk.jpg" alt="Emotion Analysis Technology" />
+        <div className="auth-image-overlay">
+          <div className="auth-image-content">
+            <h2>Welcome to EmotionWave</h2>
+            <p>Enhancing education through emotion intelligence</p>
+          </div>
+        </div>
       </div>
       <div className="auth-container">
         <div className="auth-logo">
