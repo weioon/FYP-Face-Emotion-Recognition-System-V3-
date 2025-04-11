@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import axios from 'axios';
+import Card from './Card';
+import Button from './Button';
 
 const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) => {
   const webcamRef = useRef(null);
@@ -8,154 +10,112 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
   const [isCapturing, setIsCapturing] = useState(false);
   const [buttonLock, setButtonLock] = useState(false);
   const captureIntervalRef = useRef(null);
-  const [webcamDimensions, setWebcamDimensions] = useState({ width: 640, height: 480 });
-  const webcamContainerRef = useRef(null);
+  const [debugInfo, setDebugInfo] = useState('');
 
-  // Add authentication headers to axios requests
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Apply token to every request
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      console.log("Added auth token to requests");
-    } else {
-      console.error("No authentication token found in localStorage");
-    }
-  }, []);
-
-  // Start camera and capture frames
-  const startCapturing = () => {
-    console.log("Starting camera...");
-    setIsCapturing(true);
-  };
-
-  // Stop camera and clean up
-  const stopCapturing = () => {
-    console.log("Stopping camera...");
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-      captureIntervalRef.current = null;
-    }
-    setIsCapturing(false);
-    setEmotions([]);
-  };
-
-  // Handle camera button click
+  // Handle camera capture toggle
   const handleCameraToggle = () => {
-    if (buttonLock) return; // Prevent button spam
-    
     setButtonLock(true);
     
-    try {
-      if (isCapturing) {
-        stopCapturing();
-      } else {
-        startCapturing();
-      }
-    } catch (error) {
-      console.error("Camera toggle error:", error);
-    } finally {
-      // Always release the button lock
-      setTimeout(() => setButtonLock(false), 1000);
+    if (isCapturing) {
+      // Stop the camera
+      clearInterval(captureIntervalRef.current);
+      setEmotions([]);
+      setIsCapturing(false);
+    } else {
+      // Start the camera
+      setIsCapturing(true);
+      captureIntervalRef.current = setInterval(() => {
+        captureFrame();
+      }, 1000); // Capture frame every second
     }
+    
+    setTimeout(() => setButtonLock(false), 1000); // Prevent rapid clicking
   };
 
-  // Update the handleRecordingToggle function
+  // Handle recording toggle
   const handleRecordingToggle = async () => {
-    if (!isCapturing) return; // Don't proceed if camera isn't on
-    
-    // Set button lock
     setButtonLock(true);
     
-    try {
-      if (!isRecording) {
-        console.log("Starting recording session...");
-        
-        try {
-          const response = await axios.post('http://localhost:8000/start_recording/', {}, { 
-            timeout: 5000  // Increased timeout 
-          });
-          console.log("Recording started response:", response.data);
-          setIsRecording(true);
-        } catch (err) {
-          console.error("Recording start error:", err);
-          throw err; // Re-throw to be caught by outer catch
-        }
-      } else {
-        console.log("Stopping recording session...");
-        try {
-          const response = await axios.post('http://localhost:8000/stop_recording/', {}, { 
-            timeout: 8000  // Increased timeout for analysis
-          });
-          console.log("Recording stopped with results:", response.data);
-          setIsRecording(false);
-          setAnalysisResults(response.data);  // This sets the results for the dashboard
-        } catch (err) {
-          console.error("Recording stop error:", err);
-          setIsRecording(false);
-          throw err; // Re-throw to be caught by outer catch
-        }
-      }
-    } catch (error) {
-      console.error("Recording toggle error:", error);
-      // Don't show alert, just log the error
-      setIsRecording(false);
-    } finally {
-      // Always release the button lock with a delay
-      setTimeout(() => setButtonLock(false), 500);
-    }
-  };
-
-  // Replace your frame capture function with this more robust version
-  const captureFrame = async () => {
-    if (!webcamRef.current) return;
-    
-    try {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) return;
-      
-      const base64Image = imageSrc.split(',')[1];
-      
-      // Use shorter timeout (2s) to prevent UI blocking
-      const response = await axios.post(
-        'http://localhost:8000/detect_emotion', 
-        { image: base64Image },
-        { 
-          timeout: 2000,
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        }
-      );
-      
-      if (response.data && response.data.emotions) {
-        setEmotions(response.data.emotions);
-      }
-    } catch (error) {
-      console.error("Frame capture error:", error);
-      // Don't update state on error
-    }
-  };
-
-  // Capture frame function - run when camera is active
-  useEffect(() => {
-    if (!isCapturing) return;
-    
-    console.log("Setting up frame capture...");
-    
-    // Initial capture with a delay to allow webcam to initialize
-    setTimeout(captureFrame, 1000);
-    
-    // Use a slower capture rate (every 1.5 seconds instead of every 500ms)
-    captureIntervalRef.current = setInterval(captureFrame, 1500);
-    
-    return () => {
-      if (captureIntervalRef.current) {
+    if (isRecording) {
+      // Stop recording
+      try {
+        const response = await axios.post('http://localhost:8000/stop_recording/');
+        setAnalysisResults(response.data);
+        setIsRecording(false);
         clearInterval(captureIntervalRef.current);
-        captureIntervalRef.current = null;
+        captureIntervalRef.current = setInterval(() => {
+          captureFrame();
+        }, 1000); // Back to normal capture rate
+      } catch (err) {
+        console.error("Error stopping recording:", err);
+        setDebugInfo(`Error stopping recording: ${err.message}`);
       }
-    };
-  }, [isCapturing]); // Only re-run when isCapturing changes
+    } else {
+      // Start recording
+      try {
+        await axios.post('http://localhost:8000/start_recording/');
+        setIsRecording(true);
+        // Start sending frames more frequently for recording
+        clearInterval(captureIntervalRef.current);
+        captureIntervalRef.current = setInterval(() => {
+          captureFrame(true); // true indicates recording mode
+        }, 200); // More frequent captures during recording
+      } catch (err) {
+        console.error("Error starting recording:", err);
+        setDebugInfo(`Error starting recording: ${err.message}`);
+      }
+    }
+    
+    setTimeout(() => setButtonLock(false), 1000); // Prevent rapid clicking
+  };
 
-  // Clean up on unmount
+  // Capture a frame from the webcam
+  const captureFrame = async (isRecordingMode = false) => {
+    if (!webcamRef.current) {
+      setDebugInfo('Webcam reference not available');
+      return;
+    }
+    
+    const screenshot = webcamRef.current.getScreenshot();
+    if (!screenshot) {
+      setDebugInfo('Failed to get screenshot');
+      return;
+    }
+    
+    try {
+      const imageData = screenshot.split(',')[1];
+      
+      if (isRecordingMode && isRecording) {
+        // Send frame for recording
+        await axios.post('http://localhost:8000/process_frame/', 
+          { image: imageData },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      } else {
+        // Send frame for emotion detection
+        const response = await axios.post('http://localhost:8000/detect_emotion', 
+          { image: imageData },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        
+        console.log('Emotion detection response:', response.data);
+        
+        // Check if emotions property exists in response
+        if (response.data && response.data.emotions) {
+          setEmotions(response.data.emotions);
+          setDebugInfo(`Detected ${response.data.emotions.length} faces`);
+        } else {
+          setEmotions([]);
+          setDebugInfo('No emotions data in response');
+        }
+      }
+    } catch (err) {
+      console.error("Error capturing frame:", err);
+      setDebugInfo(`Error: ${err.message}`);
+    }
+  };
+
+  // Clean up interval on unmount
   useEffect(() => {
     return () => {
       if (captureIntervalRef.current) {
@@ -164,150 +124,133 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     };
   }, []);
 
-  // Update the webcam dimensions effect
-  useEffect(() => {
-    if (!isCapturing || !webcamRef.current) return;
-    
-    const updateDimensions = () => {
-      if (webcamRef.current && webcamRef.current.video) {
-        const video = webcamRef.current.video;
-        
-        // Log actual dimensions for debugging
-        console.log("Webcam dimensions:", {
-          width: video.videoWidth,
-          height: video.videoHeight,
-          displayWidth: video.clientWidth,
-          displayHeight: video.clientHeight
-        });
-        
-        setWebcamDimensions({
-          width: video.clientWidth,
-          height: video.clientHeight,
-          videoWidth: video.videoWidth || 640,
-          videoHeight: video.videoHeight || 480
-        });
-      }
-    };
-    
-    // Initial update with delay
-    const initialUpdate = setTimeout(updateDimensions, 1000);
-    
-    // Update on resize
-    window.addEventListener('resize', updateDimensions);
-    
-    return () => {
-      clearTimeout(initialUpdate);
-      window.removeEventListener('resize', updateDimensions);
-    };
-  }, [isCapturing, webcamRef.current]);
-
-  // Add this CSS with the appropriate selectors
-  const overlayStyles = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    pointerEvents: 'none'
-  };
+  // Define the green color for emotion boxes - using the EmotionWave green
+  const greenBorderColor = "#7AB317";  // From --emotion-happy in index.css
 
   return (
-    <div className="emotion-detector">
-      <div className="webcam-container" ref={webcamContainerRef}>
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          width={640}
-          height={480}
-          className="webcam"
-        />
-        
-        {emotions.length > 0 && (
-          <div className="emotion-overlay" style={overlayStyles}>
-            {emotions.map((emotion, index) => {
-              // Get exact webcam element dimensions
-              const webcamElement = webcamRef.current.video;
-              const displayWidth = webcamElement.clientWidth;
-              const displayHeight = webcamElement.clientHeight;
-              
-              // Extract face coordinates - Handle different formats
-              let x1, y1, x2, y2;
-              if (emotion.face_location.length === 4) {
-                [x1, y1, x2, y2] = emotion.face_location;
-              } else {
-                x1 = emotion.face_location[0];
-                y1 = emotion.face_location[1];
-                x2 = x1 + (emotion.face_location[2] || 100);
-                y2 = y1 + (emotion.face_location[3] || 100);
-              }
-              
-              // Calculate box dimensions as percentages (more reliable across different sizes)
-              const leftPercent = (x1 / 640) * 100;
-              const topPercent = (y1 / 480) * 100;
-              const widthPercent = ((x2 - x1) / 640) * 100;
-              const heightPercent = ((y2 - y1) / 480) * 100;
-              
-              return (
-                <div 
-                  key={index} 
-                  className="emotion-box"
-                  style={{
-                    position: 'absolute',
-                    left: `${leftPercent}%`,
-                    top: `${topPercent}%`,
-                    width: `${widthPercent}%`,
-                    height: `${heightPercent}%`,
-                    border: '2px solid green',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <div className="emotion-label"
+    <Card title="Emotion Detection" variant="primary">
+      <div className="space-y-6">
+        <div className="webcam-container">
+          <Webcam
+            audio={false}
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            width={640}
+            height={480}
+            className="webcam"
+          />
+          
+          {isCapturing && (
+            <div className="camera-status-indicator">
+              {isRecording ? 'Recording' : 'Analyzing'}
+            </div>
+          )}
+          
+          {emotions && emotions.length > 0 && (
+            <div className="emotion-overlay">
+              {emotions.map((emotion, index) => {
+                if (!emotion.face_location || emotion.face_location.length !== 4) {
+                  console.warn('Invalid face_location data:', emotion);
+                  return null;
+                }
+                
+                const [x1, y1, x2, y2] = emotion.face_location;
+                const leftPercent = (x1 / 640) * 100;
+                const topPercent = (y1 / 480) * 100;
+                const widthPercent = ((x2 - x1) / 640) * 100;
+                const heightPercent = ((y2 - y1) / 480) * 100;
+                
+                return (
+                  <div 
+                    key={index} 
                     style={{
                       position: 'absolute',
-                      top: '-25px',
+                      left: `${leftPercent}%`,
+                      top: `${topPercent}%`,
+                      width: `${widthPercent}%`,
+                      height: `${heightPercent}%`,
+                      border: `3px solid ${greenBorderColor}`,
+                      boxSizing: 'border-box',
+                      zIndex: 10
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute',
+                      top: '-28px',
                       left: '0',
-                      backgroundColor: 'green',
+                      background: greenBorderColor,
                       color: 'white',
-                      padding: '2px 6px',
-                      borderRadius: '3px',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
                       fontSize: '14px',
+                      fontWeight: 'bold',
                       whiteSpace: 'nowrap'
                     }}>
-                    {emotion.dominant_emotion}
+                      {emotion.dominant_emotion}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+        </div>
+        
+        {debugInfo && (
+          <div className="debug-info" style={{
+            marginBottom: '10px',
+            fontSize: '12px',
+            color: 'var(--neutral-dark)'
+          }}>
+            Debug: {debugInfo}
+          </div>
+        )}
+        
+        <div className="controls">
+          <Button 
+            onClick={handleCameraToggle}
+            variant={isCapturing ? 'danger' : 'primary'}
+            disabled={buttonLock}
+          >
+            {isCapturing ? (
+              <>
+                <i className="fas fa-stop mr-2"></i>
+                Stop Camera
+              </>
+            ) : (
+              <>
+                <i className="fas fa-camera mr-2"></i>
+                Start Camera
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={handleRecordingToggle}
+            variant={isRecording ? 'warning' : 'success'}
+            disabled={!isCapturing || buttonLock}
+          >
+            {isRecording ? (
+              <>
+                <i className="fas fa-stop-circle mr-2"></i>
+                Stop Recording
+              </>
+            ) : (
+              <>
+                <i className="fas fa-record-vinyl mr-2"></i>
+                Start Recording
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {buttonLock && (
+          <div className="processing-indicator">
+            <div className="spinner"></div>
+            <p>Processing request...</p>
           </div>
         )}
       </div>
-      
-      <div className="controls">
-        <button 
-          onClick={handleCameraToggle}
-          className={`btn ${isCapturing ? 'btn-danger' : 'btn-primary'}`}
-          disabled={buttonLock}
-        >
-          {isCapturing ? 'Stop Camera' : 'Start Camera'}
-        </button>
-        
-        <button 
-          onClick={handleRecordingToggle}
-          className={`btn ${isRecording ? 'btn-warning' : 'btn-success'}`}
-          disabled={!isCapturing || buttonLock}
-        >
-          {isRecording ? 'Stop Recording & Analyze' : 'Start Recording Session'}
-        </button>
-      </div>
-      
-      {buttonLock && (
-        <div className="processing-indicator">
-          <div className="spinner"></div>
-          <p>Processing request...</p>
-        </div>
-      )}
-    </div>
+    </Card>
   );
 };
 
