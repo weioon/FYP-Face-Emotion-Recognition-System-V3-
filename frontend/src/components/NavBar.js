@@ -15,28 +15,41 @@ const NavBar = ({ setIsAuthenticated }) => {
 
   return (
     <nav className="navbar">
-      <div className="nav-logo">
-        <Link to="/dashboard">
-          <i className="fas fa-brain nav-logo-icon"></i>
-          EmotionWave
-        </Link>
-      </div>
-      <div className="nav-links">
-        <Link to="/dashboard" className={location.pathname === "/dashboard" ? "active" : ""}>
-          <i className="nav-icon fas fa-chart-bar"></i>
-          Dashboard
-        </Link>
-        <Link to="/history" className={location.pathname === "/history" ? "active" : ""}>
-          <i className="nav-icon fas fa-history"></i>
-          History
-        </Link>
-      </div>
-      <div className="nav-user">
-        <span className="username">
-          <i className="fas fa-user-circle user-icon"></i>
-          {username}
-        </span>
-        <button onClick={handleLogout} className="logout-btn">Logout</button>
+      <div className="navbar-container">
+        <div className="nav-brand">
+          <Link to="/dashboard">
+            <i className="fas fa-brain"></i>
+          </Link>
+        </div>
+
+        <div className="system-name">
+          <h1>EmotionWave</h1>
+        </div>
+        
+        <div className="nav-controls">
+          <div className="nav-buttons">
+            <Link to="/dashboard" className={`nav-btn ${location.pathname === "/dashboard" ? "active" : ""}`}>
+              <i className="fas fa-chart-bar"></i>
+              <span>Dashboard</span>
+            </Link>
+            
+            <Link to="/history" className={`nav-btn ${location.pathname === "/history" ? "active" : ""}`}>
+              <i className="fas fa-history"></i>
+              <span>History</span>
+            </Link>
+          </div>
+
+          <div className="nav-user">
+            <span className="username">
+              <i className="fas fa-user-circle"></i>
+              {username}
+            </span>
+            <button onClick={handleLogout} className="logout-btn">
+              <i className="fas fa-sign-out-alt"></i>
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     </nav>
   );

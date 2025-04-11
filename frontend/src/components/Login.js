@@ -33,33 +33,52 @@ const Login = ({ setIsAuthenticated }) => {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Login</h2>
-      {error && <div className="error-message">{error}</div>}
-      <form onSubmit={handleLogin}>
-        <div className="form-group">
-          <label>Username</label>
-          <input 
-            type="text" 
-            value={username} 
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+    <div className="auth-page">
+      <div className="auth-image">
+        <img src="https://i.imgur.com/8PGcYzn.png" alt="Education Technology" />
+      </div>
+      <div className="auth-container">
+        <div className="auth-logo">
+          <i className="fas fa-brain"></i>
+          <h1>EmotionWave</h1>
         </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <p>
-        Don't have an account? <span onClick={() => navigate('/register')} className="link">Register here</span>
-      </p>
+        <h2>Welcome Back</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <div className="input-with-icon">
+              <i className="fas fa-user"></i>
+              <input 
+                id="username"
+                type="text" 
+                value={username} 
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                required
+              />
+            </div>
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-with-icon">
+              <i className="fas fa-lock"></i>
+              <input 
+                id="password"
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password" 
+                required
+              />
+            </div>
+          </div>
+          <button type="submit" className="btn-auth">Login</button>
+        </form>
+        <p className="auth-switch">
+          Don't have an account? <span onClick={() => navigate('/register')} className="link">Register here</span>
+        </p>
+      </div>
     </div>
   );
 };

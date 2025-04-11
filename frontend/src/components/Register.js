@@ -50,53 +50,87 @@ const Register = () => {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Register New Account</h2>
-      {error && <div className="error-message">{error}</div>}
-      <form onSubmit={handleRegister}>
-        <div className="form-group">
-          <label>Username</label>
-          <input 
-            type="text" 
-            value={username} 
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+    <div className="auth-page">
+      <div className="auth-image">
+        <img src="https://i.imgur.com/tPKcgGE.png" alt="Educational Analytics" />
+      </div>
+      <div className="auth-container">
+        <div className="auth-logo">
+          <i className="fas fa-brain"></i>
+          <h1>EmotionWave</h1>
         </div>
-        <div className="form-group">
-          <label>Email</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label>Confirm Password</label>
-          <input 
-            type="password" 
-            value={confirmPassword} 
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Registering...' : 'Register'}
-        </button>
-      </form>
-      <p>
-        Already have an account? <span onClick={() => navigate('/login')} className="link">Login here</span>
-      </p>
+        <h2>Create Account</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleRegister}>
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <div className="input-with-icon">
+              <i className="fas fa-user"></i>
+              <input 
+                id="username"
+                type="text" 
+                value={username} 
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Choose a username"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <div className="input-with-icon">
+              <i className="fas fa-envelope"></i>
+              <input 
+                id="email"
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-with-icon">
+              <i className="fas fa-lock"></i>
+              <input 
+                id="password"
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create a password"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <div className="input-with-icon">
+              <i className="fas fa-lock"></i>
+              <input 
+                id="confirmPassword"
+                type="password" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                required
+              />
+            </div>
+          </div>
+          
+          <button type="submit" disabled={isLoading} className="btn-auth">
+            {isLoading ? 'Registering...' : 'Register'}
+          </button>
+        </form>
+        
+        <p className="auth-switch">
+          Already have an account? <span onClick={() => navigate('/login')} className="link">Login here</span>
+        </p>
+      </div>
     </div>
   );
 };

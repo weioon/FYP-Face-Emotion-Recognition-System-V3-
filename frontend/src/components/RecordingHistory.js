@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
+import Card from './Card';
 
 const RecordingHistory = () => {
   const [recordings, setRecordings] = useState([]);
@@ -59,80 +60,100 @@ const RecordingHistory = () => {
   if (error) return <div className="error-message">{error}</div>;
 
   return (
-    <div className="recording-history">
-      <h2>Your Recording History</h2>
-      {recordings.length === 0 ? (
-        <p>No recordings found. Start a new recording session!</p>
-      ) : (
-        <>
-          <div className="recordings-list">
-            {currentRecordings.map((recording) => (
-              <div key={recording.id} className="recording-item" onClick={() => viewRecording(recording.id)}>
-                <div className="recording-time">
-                  <div className="date-container">
-                    <i className="far fa-calendar-alt time-icon"></i>
-                    <span className="date">{moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</span>
-                  </div>
-                  <div className="time-container">
-                    <i className="far fa-clock time-icon"></i>
-                    <span className="time">{moment.utc(recording.timestamp).local().format('h:mm:ss A')}</span>
-                  </div>
-                </div>
-                <div className="recording-preview">
-                  {recording.analysis_data.significant_emotions && recording.analysis_data.significant_emotions.length > 0 ? (
-                    <div>
-                      Primary emotion: {recording.analysis_data.significant_emotions[0]?.emotion || 'Neutral'}
-                      {recording.analysis_data.duration && (
-                        <div className="duration">
-                          Session duration: {Math.round(recording.analysis_data.duration)} seconds
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      No significant emotions detected
-                    </div>
-                  )}
-                </div>
-                <div className="view-btn">View Details</div>
-              </div>
-            ))}
+    <>
+      <Card title="Recording History" variant="primary">
+        {recordings.length === 0 ? (
+          <div className="no-data-message">
+            <p>No recordings found. Start a new recording session!</p>
           </div>
-          
-          {recordings.length > recordsPerPage && (
-            <div className="pagination">
-              <button 
-                onClick={prevPage} 
-                disabled={currentPage === 1}
-                className="pagination-btn"
-              >
-                Prev
-              </button>
-              
-              <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => paginate(i + 1)}
-                    className={`page-number ${currentPage === i + 1 ? 'active' : ''}`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-              
-              <button 
-                onClick={nextPage} 
-                disabled={currentPage === totalPages}
-                className="pagination-btn"
-              >
-                Next
-              </button>
+        ) : (
+          <>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Duration</th>
+                    <th>Major Emotion</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentRecordings.map((recording) => (
+                    <tr key={recording.id}>
+                      <td>
+                        <div className="date-cell">
+                          <i className="far fa-calendar-alt mr-2"></i>
+                          {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="time-cell">
+                          <i className="far fa-clock mr-2"></i>
+                          {moment.utc(recording.timestamp).local().format('h:mm:ss A')}
+                        </div>
+                      </td>
+                      <td>
+                        {recording.analysis_data.duration ? 
+                          `${Math.round(recording.analysis_data.duration)} sec` : 
+                          'N/A'}
+                      </td>
+                      <td>
+                        {recording.analysis_data.significant_emotions && 
+                         recording.analysis_data.significant_emotions.length > 0 ? 
+                          recording.analysis_data.significant_emotions[0]?.emotion || 'Neutral' : 
+                          'No data'}
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => viewRecording(recording.id)}
+                          className="view-btn-table"
+                        >
+                          <i className="fas fa-eye mr-1"></i> View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </>
-      )}
-    </div>
+            
+            {recordings.length > recordsPerPage && (
+              <div className="pagination">
+                <button 
+                  onClick={prevPage} 
+                  disabled={currentPage === 1}
+                  className="pagination-btn"
+                >
+                  Prev
+                </button>
+                
+                <div className="page-numbers">
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => paginate(i + 1)}
+                      className={`page-number ${currentPage === i + 1 ? 'active' : ''}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={nextPage} 
+                  disabled={currentPage === totalPages}
+                  className="pagination-btn"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+    </>
   );
 };
 
