@@ -672,7 +672,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--neutral-lightest);
+  color: black;
   font-size: 0.95rem;
 }
 
