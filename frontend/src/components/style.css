@@ -49,7 +49,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Academic Card Design */
 .card {
-  background: white;
+  background: hsl(300, 100%, 47%);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
   transition: transform 0.3s ease, box-shadow 0.3s ease;

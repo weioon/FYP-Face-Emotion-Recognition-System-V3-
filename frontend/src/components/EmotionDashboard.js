@@ -84,63 +84,71 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
   return (
     <div className="emotion-dashboard space-y-6">
       <Card title="Emotion Analysis Results" variant="primary">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="font-semibold mb-2">Session Overview</h3>
-            <p className="text-gray-700">
-              <span className="font-medium">Duration:</span> {analysisResults.duration?.toFixed(2)} seconds
-            </p>
-            <p className="text-gray-700">
-              <span className="font-medium">Dominant Emotion:</span> {analysisResults.dominant_emotion}
-            </p>
-          </div>
-          
-          <div className="chart-container">
-            <Bar data={chartData} options={chartOptions} />
+        <div className="analysis-section">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold mb-2">Session Overview</h3>
+              <p className="text-gray-700">
+                <span className="font-medium">Duration:</span> {analysisResults.duration?.toFixed(2)} seconds
+              </p>
+              <p className="text-gray-700">
+                <span className="font-medium">Dominant Emotion:</span> {analysisResults.dominant_emotion}
+              </p>
+            </div>
+            
+            <div className="chart-container">
+              <Bar data={chartData} options={chartOptions} />
+            </div>
           </div>
         </div>
       </Card>
 
       {analysisResults.emotion_journey && (
         <Card title="Emotional Journey" variant="success">
-          <div className="journey-stages grid grid-cols-1 md:grid-cols-3 gap-4">
-            {['beginning', 'middle', 'end'].map((stage, index) => (
-              <div key={stage} className={`stage p-4 rounded-lg ${index === 0 ? 'bg-blue-50' : index === 1 ? 'bg-purple-50' : 'bg-teal-50'}`}>
-                <h4 className="text-lg font-semibold mb-3 text-center capitalize">{stage}</h4>
-                <ul className="space-y-2">
-                  {Object.entries(analysisResults.emotion_journey[stage] || {}).map(([emotion, value]) => (
-                    <li key={emotion} className="flex justify-between items-center bg-white p-2 rounded">
-                      <span className="capitalize">{emotion}</span>
-                      <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : value}%</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+          <div className="analysis-section">
+            <div className="journey-stages grid grid-cols-1 md:grid-cols-3 gap-4">
+              {['beginning', 'middle', 'end'].map((stage, index) => (
+                <div key={stage} className={`stage p-4 rounded-lg ${index === 0 ? 'bg-blue-50' : index === 1 ? 'bg-purple-50' : 'bg-teal-50'}`}>
+                  <h4 className="text-lg font-semibold mb-3 text-center capitalize">{stage}</h4>
+                  <ul className="space-y-2">
+                    {Object.entries(analysisResults.emotion_journey[stage] || {}).map(([emotion, value]) => (
+                      <li key={emotion} className="flex justify-between items-center bg-white p-2 rounded">
+                        <span className="capitalize">{emotion}</span>
+                        <span className="font-medium">{typeof value === 'number' ? value.toFixed(1) : value}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         </Card>
       )}
 
       {analysisResults.interpretation && (
         <Card title="Interpretation" variant="warning">
-          <div className="prose max-w-none">
-            <p className="whitespace-pre-line">{analysisResults.interpretation}</p>
+          <div className="analysis-section">
+            <div className="prose max-w-none">
+              <p className="whitespace-pre-line">{analysisResults.interpretation}</p>
+            </div>
           </div>
         </Card>
       )}
 
       {analysisResults.educational_recommendations && (
         <Card title="Educational Recommendations">
-          <ul className="space-y-3">
-            {analysisResults.educational_recommendations.map((rec, index) => (
-              <li key={index} className="flex items-start">
-                <span className="inline-block bg-primary-color text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
-                  {index + 1}
-                </span>
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="analysis-section">
+            <ul className="space-y-3">
+              {analysisResults.educational_recommendations.map((rec, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="inline-block bg-primary-color text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <span>{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </Card>
       )}
     </div>
