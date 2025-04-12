@@ -169,21 +169,27 @@ const RecordingDetail = () => {
 
   return (
     <div className="recording-detail">
-      <h2>Recording Details</h2>
-      <div className="recording-meta">
-        <p>Date: {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</p>
-        <p>Time: {moment.utc(recording.timestamp).local().format('h:mm:ss A')}</p>
-        <p>Duration: {recording.analysis_data.duration ? `${Math.round(recording.analysis_data.duration)} seconds` : 'N/A'}</p>
-      </div>
-
-      <div className="charts-container">
-        <div className="emotion-chart">
-          <h3>Emotions Detected</h3>
-          <Bar data={chartData} options={chartOptions} />
+      {/* Recording Header Section */}
+      <div className="recording-header">
+        <h2>Recording Details</h2>
+        <div className="recording-meta">
+          <p>Date: {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</p>
+          <p>Time: {moment.utc(recording.timestamp).local().format('h:mm:ss A')}</p>
+          <p>Duration: {recording.analysis_data.duration ? `${Math.round(recording.analysis_data.duration)} seconds` : 'N/A'}</p>
         </div>
       </div>
 
-      <div className="analysis-section">
+      {/* Chart Section */}
+      <div className="charts-container">
+        <h3>
+          <i className="fas fa-chart-pie"></i>
+          Emotions Detected
+        </h3>
+        <Bar data={chartData} options={chartOptions} />
+      </div>
+
+      {/* Analysis Summary Section */}
+      <div className="summary-section">
         <h3>
           <i className="fas fa-chart-line"></i>
           Analysis Summary
@@ -191,7 +197,10 @@ const RecordingDetail = () => {
         <div className="summary-text">
           {summaryData}
         </div>
-        
+      </div>
+      
+      {/* Interpretation Section */}
+      <div className="interpretation-section">
         <h3>
           <i className="fas fa-brain"></i>
           Interpretation
@@ -199,7 +208,10 @@ const RecordingDetail = () => {
         <div className="interpretation">
           {recording.analysis_data.interpretation || "The emotional state was relatively consistent throughout the session."}
         </div>
+      </div>
 
+      {/* Emotional Journey Section */}
+      <div className="journey-section">
         <h3>
           <i className="fas fa-chart-area"></i>
           Emotional Journey
@@ -230,7 +242,10 @@ const RecordingDetail = () => {
             </ul>
           </div>
         </div>
+      </div>
 
+      {/* Recommendations Section */}
+      <div className="recommendations-section">
         <h3>
           <i className="fas fa-lightbulb"></i>
           Educational Recommendations
