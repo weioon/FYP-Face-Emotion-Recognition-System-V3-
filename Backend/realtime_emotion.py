@@ -44,15 +44,35 @@ class RealtimeEmotionDetector:
         self.recording = True
         self.start_time = time.time()
         self.emotion_records = []  # Clear previous records
-        print(f"Recording started at {self.start_time}")
+        print(f"Recording started at {self.start_time} with unix timestamp")
         return True
     
     def stop_recording(self):
         """Stop the current recording session"""
+        if not self.recording:
+            print("Warning: stop_recording called but recording was not active")
+            return True
+        
         self.recording = False
         self.end_time = time.time()
         duration = self.end_time - self.start_time if self.start_time else 0
-        print(f"Recording stopped after {duration:.2f}s with {len(self.emotion_records)} emotions recorded")
+        
+        # Debug output
+        record_count = len(self.emotion_records) if hasattr(self, "emotion_records") else 0
+        print(f"Recording stopped after {duration:.2f}s with {record_count} emotions recorded")
+        
+        if record_count > 0:
+            print(f"First record: {self.emotion_records[0]}")
+            print(f"Last record: {self.emotion_records[-1]}")
+            
+            # Verify timestamps are correct
+            if record_count >= 2:
+                start_ts = self.emotion_records[0]['timestamp']
+                end_ts = self.emotion_records[-1]['timestamp']
+                print(f"First timestamp: {start_ts:.2f}, Last timestamp: {end_ts:.2f}, Duration: {end_ts - start_ts:.2f}s")
+        else:
+            print("WARNING: No emotion records were collected during recording!")
+        
         return True
     
     def detect_emotions_in_frame(self, frame_data):
@@ -68,6 +88,7 @@ class RealtimeEmotionDetector:
         try:
             # Make a copy to avoid modifying the original
             img = frame.copy()
+            frame_height, frame_width = img.shape[:2]
             
             # Resize image for faster processing
             scale = 0.5
@@ -77,11 +98,7 @@ class RealtimeEmotionDetector:
             face_detected = False
             
             try:
-                # Print frame processing timestamp for debugging
-                current_time = time.time()
-                elapsed = current_time - self.start_time if self.recording and self.start_time else 0
-                print(f"Processing frame at {elapsed:.2f}s from start")
-                
+                # Process with DeepFace
                 results = DeepFace.analyze(
                     small_frame,
                     actions=['emotion'],
@@ -96,24 +113,35 @@ class RealtimeEmotionDetector:
                 
                 for result in results:
                     if 'emotion' in result:
+                        # Get face rectangle if available
+                        region = result.get('region', {})
+                        
+                        # Scale coordinates back to original size
+                        x = int(region.get('x', 0) / scale)
+                        y = int(region.get('y', 0) / scale)
+                        w = int(region.get('w', 0) / scale)
+                        h = int(region.get('h', 0) / scale)
+                        
+                        # Apply padding to make box larger (improves visual appearance)
+                        padding = int(h * 0.1)  # 10% padding
+                        x = max(0, x - padding)
+                        y = max(0, y - padding)
+                        w = min(frame_width - x, w + padding * 2)
+                        h = min(frame_height - y, h + padding * 2)
+                        
+                        # Get emotions
+                        emotion_scores = result['emotion']
+                        dominant_emotion = result.get('dominant_emotion', 
+                                                 max(emotion_scores.items(), key=lambda x: x[1])[0]
+                                                ).lower().capitalize()
+                        
                         face_detected = True
-                        # Extract face location
-                        x = int(result['region']['x'] / scale) if 'region' in result else 0
-                        y = int(result['region']['y'] / scale) if 'region' in result else 0
-                        w = int(result['region']['w'] / scale) if 'region' in result else 100
-                        h = int(result['region']['h'] / scale) if 'region' in result else 100
                         
-                        # Extract emotions
-                        emotions_dict = result['emotion']
-                        dominant_emotion = result['dominant_emotion']
-                        
-                        # Format emotion scores
-                        emotion_scores = {k: float(v) for k, v in emotions_dict.items()}
-                        
+                        # Update the store with proper coordinates for front-end rendering
                         emotions_detected.append({
-                            "face_location": [x, y, x+w, y+h],
-                            "dominant_emotion": dominant_emotion,
-                            "emotion_scores": emotion_scores
+                            'face_location': [x, y, x+w, y+h],  # Use list format with correct coordinates
+                            'dominant_emotion': dominant_emotion,
+                            'emotion_scores': emotion_scores
                         })
                         
                         # Draw rectangle for visualization
@@ -121,31 +149,16 @@ class RealtimeEmotionDetector:
                         
                         # Record emotion data when recording is active
                         if self.recording:
-                            timestamp = current_time - self.start_time if self.start_time else 0
-                            
-                            # Always make first letter uppercase for consistency
+                            timestamp = time.time() - self.start_time if self.start_time else 0
                             emotion_name = dominant_emotion.capitalize()
-                            
-                            # Add the record to emotion_records
                             self.emotion_records.append({
                                 "timestamp": timestamp,
                                 "emotion": emotion_name,
                                 "score": emotion_scores.get(dominant_emotion.lower(), 0)
                             })
-                            print(f"Recorded emotion: {emotion_name} at {timestamp:.2f}s - Total: {len(self.emotion_records)}")
-            
+                
             except Exception as e:
-                print(f"DeepFace error: {e}")
-            
-            # Record neutral emotion if no face detected during recording
-            if self.recording and not face_detected:
-                timestamp = time.time() - self.start_time if self.start_time else 0
-                print(f"No face detected - recording neutral at {timestamp:.2f}s")
-                self.emotion_records.append({
-                    "timestamp": timestamp,
-                    "emotion": "Neutral",
-                    "score": 100.0
-                })
+                print(f"DeepFace processing error: {e}")
             
             # Store current emotion data for API access
             self.current_emotion_data = emotions_detected
@@ -153,7 +166,6 @@ class RealtimeEmotionDetector:
             return frame
         except Exception as e:
             print(f"Error in process_frame: {e}")
-            traceback.print_exc()
             return frame
     
     def decode_image(self, base64_image):
@@ -191,6 +203,11 @@ class RealtimeEmotionDetector:
         
         # Calculate duration
         duration = self.end_time - self.start_time if self.start_time and self.end_time else 0
+        print(f"Recording duration: {duration:.2f}s from {self.start_time} to {self.end_time}")
+        
+        # Check that we have the start and end times recorded correctly
+        if not self.start_time or not self.end_time:
+            print("ERROR: Missing start_time or end_time - recording may not have been properly started/stopped")
         
         # Basic error handling - return default structure if no data
         if not self.emotion_records or len(self.emotion_records) < 3:
@@ -203,7 +220,14 @@ class RealtimeEmotionDetector:
                     "beginning": {"Neutral": 100.0},
                     "middle": {"Neutral": 100.0},
                     "end": {"Neutral": 100.0}
-                }
+                },
+                "interpretation": "Insufficient emotion data was captured during the recording session. This may occur if your face was not visible to the camera, lighting was poor, or the emotion detection system had difficulty identifying facial expressions.",
+                "educational_recommendations": [
+                    "Ensure your face is clearly visible throughout the recording session.",
+                    "Check that lighting is adequate, with even illumination on your face.",
+                    "Position yourself directly facing the camera for best detection results.",
+                    "Avoid covering parts of your face during the recording."
+                ]
             }
         
         try:
@@ -266,8 +290,15 @@ class RealtimeEmotionDetector:
             }
             
             # Create interpretation and recommendations based on emotion journey
+            print(f"Generating analysis with beginning: {list(beginning_percentages.keys())}, middle: {list(middle_percentages.keys())}, end: {list(end_percentages.keys())}")
+            
             interpretation = self._generate_interpretation(beginning_percentages, middle_percentages, end_percentages)
-            recommendations = self._generate_recommendations(emotion_percentages, dominant_emotion)
+            
+            recommendations = self._generate_recommendations({
+                "beginning": beginning_percentages, 
+                "middle": middle_percentages, 
+                "end": end_percentages
+            }, dominant_emotion)
             
             # Format for analysis result
             analysis_result = {
@@ -309,52 +340,208 @@ class RealtimeEmotionDetector:
             }
 
     def _generate_interpretation(self, beginning, middle, end):
-        """Generate interpretation based on emotion journey"""
+        """Generate detailed interpretation of emotional journey with bullet points"""
         try:
-            # Simple interpretation based on emotion shifts
+            # Get dominant emotions for each phase
             beginning_emotion = max(beginning.items(), key=lambda x: x[1])[0] if beginning else "Neutral"
             middle_emotion = max(middle.items(), key=lambda x: x[1])[0] if middle else "Neutral"
             end_emotion = max(end.items(), key=lambda x: x[1])[0] if end else "Neutral"
             
-            interpretation = f"Your emotional journey started with {beginning_emotion}, "
-            interpretation += f"moved to {middle_emotion} in the middle, "
-            interpretation += f"and ended with {end_emotion}. "
+            interpretation = []
             
-            if beginning_emotion == middle_emotion == end_emotion:
-                interpretation += "Your emotional state remained consistent throughout the session."
-            elif beginning_emotion != end_emotion:
-                interpretation += f"Your emotion changed from {beginning_emotion} to {end_emotion}, which suggests a significant emotional shift during the session."
+            # Beginning phase analysis
+            interpretation.append("## Initial Learning Phase")
             
-            return interpretation
+            if beginning_emotion == "Happy":
+                interpretation.append("• Students exhibited positive engagement at the beginning, showing readiness to learn")
+                interpretation.append("• This suggests successful activation of prior knowledge or effective introductory materials")
+            elif beginning_emotion == "Neutral":
+                interpretation.append("• Students displayed attentive receptiveness in the initial phase")
+                interpretation.append("• This indicates a focused but emotionally reserved approach to the new content")
+            elif beginning_emotion == "Sad":
+                interpretation.append("• The session began with signs of hesitation or uncertainty")
+                interpretation.append("• This possibly reflects anxiety about the subject matter or difficulty with prerequisite knowledge")
+            elif beginning_emotion == "Angry":
+                interpretation.append("• Initial resistance was detected at the start of the session")
+                interpretation.append("• This potentially indicates frustration with previous concepts or a disconnect with expectations")
+            elif beginning_emotion == "Surprise":
+                interpretation.append("• The session began with cognitive activation through novelty")
+                interpretation.append("• This indicates successful capturing of attention through unexpected or intriguing elements")
+            
+            # Middle phase analysis
+            interpretation.append("\n## Core Content Engagement")
+            
+            if beginning_emotion != middle_emotion:
+                interpretation.append(f"• A significant transition from {beginning_emotion} to {middle_emotion} occurred during primary content delivery")
+                
+                if beginning_emotion in ["Neutral", "Sad"] and middle_emotion == "Happy":
+                    interpretation.append("• This positive shift suggests successful cognitive activation as students connected with the material")
+                    interpretation.append("• The change indicates effective explanatory approaches that resonated with students")
+                elif beginning_emotion in ["Happy", "Neutral"] and middle_emotion in ["Sad", "Angry"]:
+                    interpretation.append("• This downward shift suggests increasing cognitive load possibly exceeding optimal levels")
+                    interpretation.append("• Content complexity may have outpaced student comprehension during this phase")
+                elif beginning_emotion in ["Sad", "Angry"] and middle_emotion in ["Sad", "Angry"]:
+                    interpretation.append("• The persistence of challenge indicators suggests continued conceptual barriers")
+                    interpretation.append("• Students likely struggled with core content elements throughout this phase")
+            else:
+                interpretation.append(f"• The {middle_emotion} engagement pattern remained consistent during the primary content delivery")
+                
+                if middle_emotion == "Happy":
+                    interpretation.append("• This suggests appropriate complexity level and successful knowledge construction")
+                    interpretation.append("• Students maintained positive cognitive engagement with the material")
+                elif middle_emotion == "Neutral":
+                    interpretation.append("• This indicates sustained focus but potentially limited affective connection")
+                    interpretation.append("• Students were attentive but may benefit from increased emotional investment")
+                elif middle_emotion in ["Sad", "Angry"]:
+                    interpretation.append("• This suggests persistent difficulty with core conceptual elements")
+                    interpretation.append("• Students continued to experience barriers to comprehension during this phase")
+            
+            # End phase analysis
+            interpretation.append("\n## Knowledge Integration Phase")
+            
+            if middle_emotion != end_emotion:
+                interpretation.append(f"• The concluding segment showed a shift from {middle_emotion} to {end_emotion}")
+                
+                if middle_emotion in ["Sad", "Angry"] and end_emotion == "Happy":
+                    interpretation.append("• This indicates successful conceptual resolution by the end")
+                    interpretation.append("• Effective clarification strategies brought clarity to previously challenging concepts")
+                elif middle_emotion == "Happy" and end_emotion in ["Sad", "Angry"]:
+                    interpretation.append("• This suggests emerging challenges during application or synthesis activities")
+                    interpretation.append("• Students may have struggled when asked to independently apply concepts")
+                elif middle_emotion in ["Happy", "Neutral"] and end_emotion in ["Neutral"]:
+                    interpretation.append("• This reflects a return to baseline cognitive processing as concepts were consolidated")
+            else:
+                interpretation.append(f"• The {end_emotion} response pattern continued through the conclusion")
+                
+                if end_emotion == "Happy":
+                    interpretation.append("• This suggests successful integration of knowledge and satisfaction with outcomes")
+                elif end_emotion == "Neutral":
+                    interpretation.append("• This indicates maintained attention but potentially limited transformative impact")
+                elif end_emotion in ["Sad", "Angry"]:
+                    interpretation.append("• This suggests unresolved conceptual barriers persisted through the conclusion")
+            
+            # Overall learning trajectory assessment
+            interpretation.append("\n## Complete Learning Journey Assessment")
+            
+            if beginning_emotion == "Neutral" and middle_emotion == "Happy" and end_emotion == "Happy":
+                interpretation.append("• This session exhibited an ideal learning progression from receptiveness to engagement")
+                interpretation.append("• The pattern indicates effective pedagogical alignment with student cognitive needs")
+            elif beginning_emotion in ["Happy", "Neutral"] and end_emotion in ["Sad", "Angry"]:
+                interpretation.append("• The declining trajectory suggests increasing cognitive demands outpaced capacity")
+                interpretation.append("• This pattern indicates potential need for additional scaffolding or prerequisite knowledge")
+            elif beginning_emotion in ["Sad", "Angry"] and end_emotion in ["Happy", "Neutral"]:
+                interpretation.append("• The positive progression demonstrates successful pedagogical intervention")
+                interpretation.append("• Teaching strategies effectively addressed initial comprehension barriers")
+            elif beginning_emotion == end_emotion:
+                interpretation.append(f"• The consistent {beginning_emotion} affect suggests a stable learning experience")
+                interpretation.append("• There was limited variability in cognitive-affective engagement throughout")
+            else:
+                interpretation.append("• The varied emotional pattern suggests a complex learning journey")
+                interpretation.append("• Students experienced distinct peaks and valleys in comprehension and engagement")
+            
+            return "\n".join(interpretation)
         except Exception as e:
-            print(f"Error generating interpretation: {e}")
-            return "Unable to generate interpretation due to insufficient data."
+            print(f"Error in interpretation generation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return "• Insufficient data to provide a detailed emotional journey analysis"
 
     def _generate_recommendations(self, emotions, dominant_emotion):
-        """Generate educational recommendations based on emotions"""
+        """Generate professional pedagogical recommendations using bullet points"""
         try:
             recommendations = []
             
-            if dominant_emotion == "Happy" or dominant_emotion == "Surprise":
-                recommendations.append("Your positive engagement is excellent! Consider tackling more challenging material.")
-                recommendations.append("Try explaining concepts to others to reinforce your understanding.")
-            elif dominant_emotion == "Sad":
-                recommendations.append("Consider taking short breaks to refresh your mind.")
-                recommendations.append("Try connecting difficult concepts to topics you enjoy.")
-            elif dominant_emotion == "Fear" or dominant_emotion == "Disgust":
-                recommendations.append("Break down complex topics into smaller, manageable parts.")
-                recommendations.append("Consider group study sessions to gain different perspectives.")
-            elif dominant_emotion == "Angry":
-                recommendations.append("Take a short break and return with a fresh perspective.")
-                recommendations.append("Try a different learning approach or resource for this topic.")
-            else:  # Neutral
-                recommendations.append("Consider more interactive learning methods to increase engagement.")
-                recommendations.append("Try setting specific learning goals to measure progress.")
+            # Get emotions from each stage
+            beg_emotion = max(emotions["beginning"].items(), key=lambda x: x[1])[0] if emotions.get("beginning") else "Neutral"
+            mid_emotion = max(emotions["middle"].items(), key=lambda x: x[1])[0] if emotions.get("middle") else "Neutral"
+            end_emotion = max(emotions["end"].items(), key=lambda x: x[1])[0] if emotions.get("end") else "Neutral"
             
+            # Primary recommendations based on dominant emotion
+            recommendations.append(f"## Pedagogical Recommendations Based on {dominant_emotion} Response Pattern")
+            
+            if dominant_emotion == "Happy":
+                recommendations.append("### Building on Positive Engagement")
+                recommendations.append("The strong positive affect suggests successful pedagogical approaches that should be reinforced:")
+                recommendations.append("• Leverage the established engagement by introducing more complex analytical tasks")
+                recommendations.append("• Implement structured peer teaching components where students articulate understanding")
+                recommendations.append("• Connect established concepts to broader theoretical frameworks or applications")
+                
+            elif dominant_emotion == "Neutral":
+                recommendations.append("### Enhancing Cognitive-Affective Connection")
+                recommendations.append("While attention was maintained, deeper engagement could be fostered through:")
+                recommendations.append("• Incorporate discipline-specific cases that create emotional anchors for abstract concepts")
+                recommendations.append("• Introduce conceptual conflicts that require students to evaluate competing positions")
+                recommendations.append("• Present key concepts through multiple sensory modalities for increased engagement")
+                
+            elif dominant_emotion == "Sad":
+                recommendations.append("### Addressing Comprehension Barriers")
+                recommendations.append("The affective pattern suggests potential conceptual obstacles that could be addressed through:")
+                recommendations.append("• Implement brief diagnostic activities to identify specific prerequisite knowledge deficiencies")
+                recommendations.append("• Provide intermediate representations that bridge familiar knowledge to new concepts")
+                recommendations.append("• Structure content with more frequent achievement benchmarks to build confidence")
+                
+            elif dominant_emotion == "Angry":
+                recommendations.append("### Resolving Cognitive Friction")
+                recommendations.append("The frustration indicators suggest needed adjustments in these areas:")
+                recommendations.append("• Segment complex material into smaller conceptual units with explicit integration pathways")
+                recommendations.append("• Provide clearer algorithmic approaches to complex tasks with graduated scaffolding")
+                recommendations.append("• Demonstrate productive approaches through transparent expert thinking processes")
+                
+            elif dominant_emotion == "Surprise":
+                recommendations.append("### Capitalizing on Cognitive Activation")
+                recommendations.append("The surprise response indicates successful cognitive activation that can be leveraged:")
+                recommendations.append("• Continue highlighting unexpected relationships or counterintuitive outcomes")
+                recommendations.append("• Structure discovery-based activities that build on initial curiosity")
+                recommendations.append("• Explicitly address the gap between intuition and disciplinary understanding")
+            
+            # Add specific recommendations based on emotional journey
+            recommendations.append("\n### Learning Progression Optimization")
+            
+            # Specific pattern-based recommendations
+            if beg_emotion in ["Sad", "Angry"] and end_emotion in ["Sad", "Angry"]:
+                recommendations.append("The persistent challenge indicators suggest need for fundamental adjustments:")
+                recommendations.append("• Create targeted resources addressing foundational knowledge gaps")
+                recommendations.append("• Provide explicit visual mapping of how concepts interconnect")
+                recommendations.append("• Restructure content progression with more gradual complexity increases")
+                
+            elif beg_emotion in ["Neutral", "Sad"] and end_emotion == "Happy":
+                recommendations.append("Your session achieved effective progression toward understanding:")
+                recommendations.append("• Document the specific explanatory approaches that facilitated the positive shift")
+                recommendations.append("• Establish stronger initial concrete examples before abstract principles")
+                recommendations.append("• Gradually increase complexity as confidence develops")
+                
+            elif beg_emotion == "Happy" and end_emotion in ["Sad", "Angry"]:
+                recommendations.append("The declining engagement pattern suggests attention to:")
+                recommendations.append("• Redistribute complex tasks more evenly throughout the session")
+                recommendations.append("• Implement brief application interludes before introducing new complexity")
+                recommendations.append("• Provide more explicit connections between sequential concepts")
+            
+            # Teaching approach recommendations
+            recommendations.append("\n### Instructional Method Refinement")
+            
+            if "Happy" in emotions.get("beginning", {}) and emotions["beginning"].get("Happy", 0) > 40:
+                recommendations.append("The strong initial engagement suggests effective activation strategies:")
+                recommendations.append("• Document and systematize your successful approach to beginning new topics")
+                recommendations.append("• Expand the initial engagement techniques with advance organizers")
+                
+            if "Happy" in emotions.get("middle", {}) and emotions["middle"].get("Happy", 0) > 50:
+                recommendations.append("Your core content delivery methods demonstrate strong effectiveness:")
+                recommendations.append("• Identify and formalize the explanation patterns that generated positive response")
+                recommendations.append("• Leverage this successful approach through structured knowledge sharing")
+                
+            if any(emotions.get(phase, {}).get("Sad", 0) > 30 for phase in ["beginning", "middle", "end"]):
+                recommendations.append("Address comprehension barriers through targeted methodological adjustments:")
+                recommendations.append("• Present challenging concepts through alternative representational forms")
+                recommendations.append("• Explicitly model expert thinking processes when approaching difficult concepts")
+                
             return recommendations
         except Exception as e:
-            print(f"Error generating recommendations: {e}")
-            return ["Unable to generate personalized recommendations."]
+            print(f"Error in recommendation generation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return ["• Consider reviewing the session materials based on student emotion patterns",
+                    "• Use multiple teaching modalities to address diverse learning needs",
+                    "• Break complex topics into smaller segments to improve comprehension"]
 
 detector = RealtimeEmotionDetector()
 
@@ -406,77 +593,4 @@ def main():
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("Error: Can't receive frame (stream end?). Exiting ...")
-            break
-
-        result_frame = detector.process_frame(frame)
-        
-        # Add recording status to frame
-        if detector.recording:
-            rec_text = "RECORDING"
-            cv2.putText(result_frame, rec_text, (10, 30), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-        
-        # Add current sensitivity setting
-        sensitivity_text = f"Neutral->Sad threshold: {detector.sad_neutral_ratio_threshold:.1f}"
-        cv2.putText(result_frame, sensitivity_text, (10, frame.shape[0] - 10), 
-                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        
-        cv2.imshow('Realtime Emotion Detection', result_frame)
-
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('r'):
-            if detector.recording:
-                detector.stop_recording()
-                analysis_result = detector.analyze_emotions()
-                
-                # Display enhanced detailed analysis
-                print("\n========== COMPREHENSIVE EMOTION ANALYSIS REPORT ==========")
-                print(f"Recording duration: {analysis_result['duration']:.2f} seconds")
-                
-                print("\n📊 EMOTION DISTRIBUTION:")
-                for emotion, percentage in analysis_result['stats'].items():
-                    print(f"- {emotion}: {percentage:.1f}%")
-                
-                print("\n🔄 EMOTIONAL JOURNEY:")
-                print("Beginning stage:")
-                for emotion, pct in analysis_result['emotion_journey']['beginning'].items():
-                    print(f"  - {emotion}: {pct:.1f}%")
-                print("Middle stage:")
-                for emotion, pct in analysis_result['emotion_journey']['middle'].items():
-                    print(f"  - {emotion}: {pct:.1f}%")
-                print("End stage:")
-                for emotion, pct in analysis_result['emotion_journey']['end'].items():
-                    print(f"  - {emotion}: {pct:.1f}%")
-                
-                print("\n📝 INTERPRETATION:")
-                print(analysis_result['interpretation'])
-                
-                print("\n⚠️ SIGNIFICANT EMOTIONAL SHIFTS:")
-                if analysis_result['significant_shifts']:
-                    for shift in analysis_result['significant_shifts']:
-                        print(f"- {shift}")
-                else:
-                    print("- No significant emotional shifts detected")
-                
-                print("\n🎓 EDUCATIONAL RECOMMENDATIONS:")
-                for rec in analysis_result['educational_recommendations']:
-                    print(f"- {rec}")
-                
-                print("===========================================================\n")
-            else:
-                detector.start_recording()
-        elif key == ord('s'):
-            # Adjust sensitivity
-            new_value = float(input("Enter new Neutral->Sad threshold (0.1-1.0, lower is more sensitive): "))
-            detector.calibrate_emotion_sensitivity(new_value)
-        elif key == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-    print("Webcam closed")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+            print("Error: Can't receive frame (stream end?). Exiting...")

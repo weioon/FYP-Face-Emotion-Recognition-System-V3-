@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional, List, Tuple, Dict
 import json
 import logging
 from jose import jwt
@@ -231,43 +231,43 @@ from pydantic import BaseModel
 import base64
 import numpy as np
 import cv2
-from typing import Optional, List
+from typing import Optional, List, Tuple, Dict
 
 # Create data models for the request/response
 class ImageRequest(BaseModel):
     image: str  # Base64 encoded image
 
 class FaceEmotion(BaseModel):
-    face_location: List[int]  # [x1, y1, x2, y2]
+    face_location: Tuple[int, int, int, int]  # Make sure this matches what's returned
     dominant_emotion: str
-    emotion_scores: Optional[dict] = None
+    emotion_scores: Dict[str, float]
 
-class EmotionResponse(BaseModel):
-    status: str
-    emotions: List[FaceEmotion] = []
-
-@app.post("/detect_emotion", response_model=EmotionResponse)
-async def detect_emotion(request: ImageRequest, current_user: User = Depends(get_current_user)):
+@app.post("/detect_emotion")
+async def detect_emotion(request: ImageRequest):
     try:
-        # Log the request (but not the full image data)
-        logger.info("Received emotion detection request")
-        
         # Decode the base64 image
         image_data = base64.b64decode(request.image)
         nparr = np.frombuffer(image_data, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        if frame is None:
-            logger.error("Failed to decode image")
-            raise HTTPException(status_code=400, detail="Invalid image data")
-            
-        # Use the lightweight detector instead
-        emotions = detector.detect_emotions_in_frame(frame)
+        # Process the frame - this will handle recording if recording is active
+        frame_with_emotions = detector.process_frame(frame)
+        
+        # Get emotion data
+        emotion_data = detector.current_emotion_data if hasattr(detector, "current_emotion_data") else []
+        
+        # Add a debug message if recording
+        is_recording = detector.recording if hasattr(detector, "recording") else False
+        if is_recording:
+            print(f"Processed frame during recording. Total records: {len(detector.emotion_records)}")
         
         return {
             "status": "success",
-            "emotions": emotions
+            "emotions": emotion_data,
+            "is_recording": is_recording
         }
     except Exception as e:
-        logger.error(f"Error in /detect_emotion: {str(e)}")
+        print(f"Error in detect_emotion: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")

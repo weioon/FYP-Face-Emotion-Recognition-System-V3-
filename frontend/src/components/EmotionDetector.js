@@ -85,22 +85,14 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     try {
       const imageData = screenshot.split(',')[1];
       
-      if (isRecordingMode && isRecording) {
-        // Send frame for recording
-        await axios.post('http://localhost:8000/process_frame/', 
-          { image: imageData },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-      } else {
-        // Send frame for emotion detection
-        const response = await axios.post('http://localhost:8000/detect_emotion', 
-          { image: imageData },
-          { headers: { 'Content-Type': 'application/json' } }
-        );
-        
-        console.log('Emotion detection response:', response.data);
-        
-        // Check if emotions property exists in response
+      // Always use the detect_emotion endpoint - it handles both recording and non-recording modes
+      const response = await axios.post('http://localhost:8000/detect_emotion', 
+        { image: imageData },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      
+      // Only update UI with emotions when not in recording mode
+      if (!isRecordingMode || !isRecording) {
         if (response.data && response.data.emotions) {
           setEmotions(response.data.emotions);
           setDebugInfo(`Detected ${response.data.emotions.length} faces`);
@@ -108,6 +100,8 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
           setEmotions([]);
           setDebugInfo('No emotions data in response');
         }
+      } else {
+        setDebugInfo('Recording frame...');
       }
     } catch (err) {
       console.error("Error capturing frame:", err);
