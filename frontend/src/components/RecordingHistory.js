@@ -51,6 +51,34 @@ const RecordingHistory = () => {
     navigate(`/recording/${recordingId}`);
   };
 
+  // Add this new function in the RecordingHistory component
+  const deleteRecording = async (recordingId) => {
+    // Show confirmation dialog
+    if (window.confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:8000/recording/${recordingId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        // Remove the deleted recording from state
+        setRecordings(prevRecordings => 
+          prevRecordings.filter(recording => recording.id !== recordingId)
+        );
+        
+        // Reset to first page if current page becomes empty
+        if (currentRecordings.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        }
+      } catch (error) {
+        setError('Failed to delete recording');
+        console.error('Error deleting recording:', error);
+      }
+    }
+  };
+
   // Pagination controls
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
@@ -116,12 +144,23 @@ const RecordingHistory = () => {
                           'No data'}
                       </td>
                       <td>
-                        <button 
-                          onClick={() => viewRecording(recording.id)}
-                          className="view-btn-table"
-                        >
-                          <i className="fas fa-eye"></i> View
-                        </button>
+                        <div className="action-buttons">
+                          <button 
+                            onClick={() => viewRecording(recording.id)}
+                            className="view-btn-table"
+                          >
+                            <i className="fas fa-eye"></i> View
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click from triggering
+                              deleteRecording(recording.id);
+                            }}
+                            className="delete-btn-table"
+                          >
+                            <i className="fas fa-trash-alt"></i> Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

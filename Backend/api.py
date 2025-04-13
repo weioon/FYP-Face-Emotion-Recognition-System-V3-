@@ -211,6 +211,21 @@ async def get_recording(recording_id: int, current_user: User = Depends(get_curr
         "analysis_data": json.loads(recording.analysis_data)
     }
 
+@app.delete("/recording/{recording_id}")
+async def delete_recording(recording_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    recording = db.query(Recording).filter(
+        Recording.id == recording_id, 
+        Recording.user_id == current_user.id
+    ).first()
+    
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found or access denied")
+    
+    db.delete(recording)
+    db.commit()
+    
+    return {"message": "Recording successfully deleted"}
+
 # Add these imports if not already present
 from pydantic import BaseModel
 import base64

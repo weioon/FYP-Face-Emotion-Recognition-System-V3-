@@ -563,6 +563,26 @@
   transform: translateX(2px);
 }
 
+/* Add to your existing CSS file */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.delete-btn-table {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.delete-btn-table:hover {
+  background-color: #c82333;
+}
 
 /* Fix card titles and make them more visible */
 .card-header {
