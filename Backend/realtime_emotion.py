@@ -416,262 +416,354 @@ class RealtimeEmotionDetector:
             }
 
     def _generate_interpretation(self, beginning, middle, end):
-        """Generate detailed interpretation of emotional journey"""
+        """Generate detailed interpretation of emotional journey covering all seven emotions"""
         # Get the dominant emotions for each phase
         beg_emotion = max(beginning.items(), key=lambda x: x[1])[0] if beginning else "Neutral"
         mid_emotion = max(middle.items(), key=lambda x: x[1])[0] if middle else "Neutral"
         end_emotion = max(end.items(), key=lambda x: x[1])[0] if end else "Neutral"
         
-        # Get secondary emotions
+        # Get secondary emotions (>15%) for more nuanced analysis
         beg_secondary = {k: v for k, v in beginning.items() if v > 15 and k != beg_emotion}
         mid_secondary = {k: v for k, v in middle.items() if v > 15 and k != mid_emotion}
         end_secondary = {k: v for k, v in end.items() if v > 15 and k != end_emotion}
         
-        # Create interpretation as an array of strings (NOT a single string with newlines)
+        # Create interpretation as an array of strings
         interpretation = []
         
-        # Beginning phase header
+        # Beginning phase interpretation
         interpretation.append("Initial Learning Phase")
         
-        # Beginning phase dominant emotion analysis
         if beg_emotion == "Happy":
-            interpretation.append(f"• Students showed positive engagement ({beginning.get('Happy', 0):.1f}%) during introduction")
-            interpretation.append("• This indicates effective activation of prior knowledge and strong initial motivation")
-            if beg_secondary:
-                for emotion, value in beg_secondary.items():
-                    if emotion == "Neutral":
-                        interpretation.append(f"• The co-presence of analytical focus ({value:.1f}%) suggests balanced cognitive-affective engagement")
-                    elif emotion == "Sad":
-                        interpretation.append(f"• Some uncertainty ({value:.1f}%) about specific elements requires clarification")
+            interpretation.append(f"Students exhibited positive engagement ({beginning.get('Happy', 0):.1f}%) during initial content introduction, indicating effective activation of prior knowledge and successful establishment of rapport.")
         elif beg_emotion == "Neutral":
-            interpretation.append(f"• Students exhibited analytical focus ({beginning.get('Neutral', 0):.1f}%) during concept introduction")
-            interpretation.append("• This indicates receptive information processing while evaluating relevance and difficulty")
-            if beg_secondary:
-                for emotion, value in beg_secondary.items():
-                    if emotion == "Happy":
-                        interpretation.append(f"• Moments of positive engagement ({value:.1f}%) reveal effective activation techniques")
+            interpretation.append(f"Students demonstrated analytical focus ({beginning.get('Neutral', 0):.1f}%) during concept introduction, suggesting attentive information processing while evaluating relevance and difficulty.")
         elif beg_emotion == "Sad":
-            interpretation.append(f"• Students showed hesitation ({beginning.get('Sad', 0):.1f}%) during opening content")
-            interpretation.append("• This suggests potential gaps in prerequisite knowledge or unclear expectations")
+            interpretation.append(f"Students displayed hesitancy ({beginning.get('Sad', 0):.1f}%) during opening segments, indicating potential gaps in prerequisite knowledge or concerns about content complexity.")
         elif beg_emotion == "Angry":
-            interpretation.append(f"• Students displayed resistance ({beginning.get('Angry', 0):.1f}%) at the start")
-            interpretation.append("• This indicates potential misalignment between expectations and presented material")
+            interpretation.append(f"Students showed resistance ({beginning.get('Angry', 0):.1f}%) at the outset, suggesting misalignment between expectations and presented material or potential frustration with preparatory assignments.")
+        elif beg_emotion == "Surprise":
+            interpretation.append(f"Students exhibited heightened alertness ({beginning.get('Surprise', 0):.1f}%) during introduction, indicating successful cognitive activation through unexpected examples or perspective-challenging concepts.")
+        elif beg_emotion == "Fear":
+            interpretation.append(f"Students displayed apprehension ({beginning.get('Fear', 0):.1f}%) during initial content, suggesting anxiety about content difficulty or performance expectations that requires addressing.")
+        elif beg_emotion == "Disgust":
+            interpretation.append(f"Students showed aversion ({beginning.get('Disgust', 0):.1f}%) during introduction, potentially indicating strong preconceptions or resistance to particular concepts that should be explicitly addressed.")
         
-        # Middle phase header
+        # Add nuanced analysis of secondary emotions
+        if beg_secondary:
+            secondary_text = "Secondary emotional patterns reveal additional insights: "
+            for emotion, value in beg_secondary.items():
+                if emotion == "Happy":
+                    secondary_text += f"moments of engagement ({value:.1f}%) indicate effective elements that could be expanded; "
+                elif emotion == "Sad":
+                    secondary_text += f"underlying hesitation ({value:.1f}%) suggests specific prerequisite concepts requiring clarification; "
+                elif emotion == "Angry":
+                    secondary_text += f"elements of frustration ({value:.1f}%) highlight potential areas of conceptual resistance; "
+                elif emotion == "Surprise":
+                    secondary_text += f"instances of heightened attention ({value:.1f}%) mark effective cognitive activation moments; "
+                elif emotion == "Fear":
+                    secondary_text += f"expressions of anxiety ({value:.1f}%) indicate specific areas causing apprehension; "
+                elif emotion == "Disgust":
+                    secondary_text += f"moments of aversion ({value:.1f}%) suggest content elements triggering strong negative reactions; "
+                elif emotion == "Neutral":
+                    secondary_text += f"periods of analytical focus ({value:.1f}%) indicate segments of effective information processing; "
+            interpretation.append(secondary_text)
+        
+        # Middle phase interpretation
         interpretation.append("Core Content Engagement")
         
-        # Middle phase analysis
         if mid_emotion == "Happy":
-            interpretation.append(f"• Students maintained positive engagement ({middle.get('Happy', 0):.1f}%) during core content")
-            interpretation.append("• This suggests appropriate complexity level and effective explanatory techniques")
+            interpretation.append(f"Students maintained positive engagement ({middle.get('Happy', 0):.1f}%) during core content, suggesting appropriate complexity level and effective explanatory techniques that fostered conceptual understanding.")
         elif mid_emotion == "Neutral":
-            interpretation.append(f"• Students showed sustained analytical focus ({middle.get('Neutral', 0):.1f}%) during main content")
-            interpretation.append("• This indicates deep information processing but potential need for emotional anchoring")
+            interpretation.append(f"Students exhibited sustained analytical processing ({middle.get('Neutral', 0):.1f}%) during primary content, indicating deep cognitive engagement but potential lack of emotional connection to material.")
         elif mid_emotion == "Sad":
-            interpretation.append(f"• Students exhibited disengagement ({middle.get('Sad', 0):.1f}%) during primary content")
-            interpretation.append("• This suggests conceptual barriers requiring alternative explanatory approaches")
-            interpretation.append("• Check for scaffolding gaps in complex concepts that need remediation")
+            interpretation.append(f"Students showed disengagement ({middle.get('Sad', 0):.1f}%) during main content delivery, suggesting conceptual barriers requiring alternative explanatory approaches or scaffolding gaps in complex concepts.")
         elif mid_emotion == "Angry":
-            interpretation.append(f"• Students showed frustration ({middle.get('Angry', 0):.1f}%) during core explanations")
-            interpretation.append("• This indicates potential cognitive overload or misaligned instructional approaches")
+            interpretation.append(f"Students displayed frustration ({middle.get('Angry', 0):.1f}%) during core explanations, indicating potential cognitive overload or misaligned instructional approaches that require adjustment.")
+        elif mid_emotion == "Surprise":
+            interpretation.append(f"Students demonstrated cognitive activation ({middle.get('Surprise', 0):.1f}%) during central concepts, suggesting successful introduction of perspective-shifting ideas or counterintuitive examples that fostered engagement.")
+        elif mid_emotion == "Fear":
+            interpretation.append(f"Students exhibited anxiety ({middle.get('Fear', 0):.1f}%) during complex content, indicating perceived difficulty or uncertainty about comprehension that requires explicit support strategies.")
+        elif mid_emotion == "Disgust":
+            interpretation.append(f"Students showed aversion ({middle.get('Disgust', 0):.1f}%) during specific content elements, suggesting strong negative reactions to particular concepts that should be explicitly addressed.")
         
         # Add transition analysis between beginning and middle
         if beg_emotion != mid_emotion:
-            interpretation.append(f"• Emotional shift from {beg_emotion} to {mid_emotion} as content complexity increased")
-            if beg_emotion in ["Happy", "Neutral"] and mid_emotion in ["Sad", "Angry"]:
-                interpretation.append("• This negative progression suggests increasing conceptual difficulty exceeded optimal challenge level")
-            elif beg_emotion in ["Sad", "Angry"] and mid_emotion in ["Happy", "Neutral"]:
-                interpretation.append("• This positive progression indicates successful pedagogical intervention and concept clarification")
+            interpretation.append(f"A significant emotional transition from {beg_emotion} to {mid_emotion} occurred as content complexity increased, indicating a shift in cognitive-affective engagement.")
+            
+            # Analyze specific emotional transitions
+            if beg_emotion in ["Happy", "Neutral"] and mid_emotion in ["Sad", "Angry", "Fear"]:
+                interpretation.append("This negative progression suggests increasing conceptual difficulty exceeded optimal challenge level, indicating need for additional scaffolding or clearer explanatory approaches.")
+            elif beg_emotion in ["Sad", "Angry", "Fear"] and mid_emotion in ["Happy", "Neutral"]:
+                interpretation.append("This positive progression indicates successful pedagogical intervention that effectively addressed initial comprehension barriers through effective explanatory techniques.")
+            elif beg_emotion in ["Neutral", "Sad"] and mid_emotion == "Surprise":
+                interpretation.append("This activation transition suggests effective introduction of perspective-shifting concepts that successfully engaged students despite initial reservation.")
+            elif beg_emotion == "Surprise" and mid_emotion in ["Happy", "Neutral"]:
+                interpretation.append("This stabilizing transition indicates successful integration of initially surprising concepts into coherent knowledge structures.")
+            elif beg_emotion == "Disgust" and mid_emotion in ["Neutral", "Happy", "Surprise"]:
+                interpretation.append("This improving transition suggests successful interventions that addressed initial strong negative reactions to content.")
         
-        # End phase header
+        # Add nuanced analysis of secondary emotions in middle phase
+        if mid_secondary:
+            secondary_text = "Additional emotional patterns during core content reveal: "
+            for emotion, value in mid_secondary.items():
+                if emotion == "Happy":
+                    secondary_text += f"instances of positive engagement ({value:.1f}%) identify specific explanations that resonated effectively; "
+                elif emotion == "Sad":
+                    secondary_text += f"moments of disengagement ({value:.1f}%) highlight particular concepts requiring additional support; "
+                elif emotion == "Angry":
+                    secondary_text += f"periods of frustration ({value:.1f}%) identify specific conceptual barriers requiring intervention; "
+                elif emotion == "Surprise":
+                    secondary_text += f"instances of cognitive activation ({value:.1f}%) mark successful perspective-shifting moments; "
+                elif emotion == "Fear":
+                    secondary_text += f"expressions of anxiety ({value:.1f}%) indicate content elements perceived as particularly challenging; "
+                elif emotion == "Disgust":
+                    secondary_text += f"moments of aversion ({value:.1f}%) suggest specific content elements triggering strong negative reactions; "
+                elif emotion == "Neutral":
+                    secondary_text += f"periods of analytical processing ({value:.1f}%) show successful engagement with complex information; "
+            interpretation.append(secondary_text)
+        
+        # End phase interpretation
         interpretation.append("Knowledge Integration Phase")
         
-        # End phase analysis
         if end_emotion == "Happy":
-            interpretation.append(f"• Students achieved positive resolution ({end.get('Happy', 0):.1f}%) during concluding elements")
-            interpretation.append("• This suggests successful knowledge integration and goal attainment")
+            interpretation.append(f"Students achieved positive resolution ({end.get('Happy', 0):.1f}%) during concluding activities, indicating successful knowledge integration and achievement of learning objectives.")
         elif end_emotion == "Neutral":
-            interpretation.append(f"• Students maintained analytical processing ({end.get('Neutral', 0):.1f}%) during synthesis")
-            interpretation.append("• This indicates ongoing information evaluation rather than emotional resolution")
+            interpretation.append(f"Students maintained analytical focus ({end.get('Neutral', 0):.1f}%) during synthesis activities, suggesting continued information processing but potential lack of emotional resolution.")
         elif end_emotion == "Sad":
-            interpretation.append(f"• Students showed disengagement ({end.get('Sad', 0):.1f}%) during conclusion")
-            interpretation.append("• This suggests unresolved conceptual barriers requiring additional clarification")
-            interpretation.append("• Consider whether synthesis activities were aligned with student preparation level")
+            interpretation.append(f"Students exhibited disengagement ({end.get('Sad', 0):.1f}%) during conclusion, suggesting unresolved conceptual barriers or misalignment between synthesis activities and student preparation.")
         elif end_emotion == "Angry":
-            interpretation.append(f"• Students exhibited frustration ({end.get('Angry', 0):.1f}%) during final activities")
-            interpretation.append("• This indicates potential misalignment between instruction and assessment requirements")
+            interpretation.append(f"Students displayed frustration ({end.get('Angry', 0):.1f}%) during closing elements, indicating potential difficulties with application requirements or unresolved conceptual tensions.")
         elif end_emotion == "Surprise":
-            interpretation.append(f"• Students showed cognitive activation ({end.get('Surprise', 0):.1f}%) during concluding insights")
-            interpretation.append("• This suggests effective delivery of perspective-shifting connections or applications")
+            interpretation.append(f"Students showed cognitive activation ({end.get('Surprise', 0):.1f}%) during concluding insights, suggesting effective delivery of integrative connections or unexpected applications of learned content.")
+        elif end_emotion == "Fear":
+            interpretation.append(f"Students demonstrated anxiety ({end.get('Fear', 0):.1f}%) during final activities, suggesting concerns about performance assessment or application requirements that should be addressed.")
+        elif end_emotion == "Disgust":
+            interpretation.append(f"Students exhibited aversion ({end.get('Disgust', 0):.1f}%) during concluding elements, potentially indicating strong negative reactions to particular implications or applications that require explicit discussion.")
         
         # Add transition analysis between middle and end
         if mid_emotion != end_emotion:
-            interpretation.append(f"• Emotional transition from {mid_emotion} to {end_emotion} during application activities")
-            if mid_emotion in ["Sad", "Angry"] and end_emotion in ["Happy", "Surprise"]:
-                interpretation.append("• This positive resolution indicates successful clarification of previously challenging concepts")
-            elif mid_emotion in ["Happy", "Neutral"] and end_emotion in ["Sad", "Angry"]:
-                interpretation.append("• This negative shift suggests difficulty with application or transfer requirements")
+            interpretation.append(f"A notable emotional shift from {mid_emotion} to {end_emotion} occurred during application and synthesis activities, revealing changes in conceptual integration.")
+            
+            # Analyze specific emotional transitions
+            if mid_emotion in ["Sad", "Angry", "Fear"] and end_emotion in ["Happy", "Neutral"]:
+                interpretation.append("This positive resolution indicates successful clarification of previously challenging concepts through effective synthesis or application activities.")
+            elif mid_emotion in ["Happy", "Neutral"] and end_emotion in ["Sad", "Angry", "Fear"]:
+                interpretation.append("This negative shift suggests difficulty with application or transfer requirements, indicating need for more scaffolded approach to synthesis activities.")
+            elif mid_emotion in ["Happy", "Neutral", "Sad"] and end_emotion == "Surprise":
+                interpretation.append("This activation transition suggests effective delivery of integrative insights that created meaningful connections between previously separate concepts.")
+            elif mid_emotion == "Surprise" and end_emotion in ["Happy", "Neutral"]:
+                interpretation.append("This consolidation transition indicates successful integration of surprising insights into coherent knowledge structures.")
+            elif mid_emotion == "Disgust" and end_emotion in ["Neutral", "Happy", "Surprise"]:
+                interpretation.append("This improving transition suggests successful interventions that addressed strong negative reactions to content elements.")
         
-        # Overall learning journey assessment
+        # Complete learning journey assessment
         interpretation.append("Complete Learning Journey Assessment")
         
-        # Analyze full emotional trajectory
+        # Analyze the full emotional trajectory
         if beg_emotion == "Happy" and end_emotion == "Happy":
-            interpretation.append("• Sustained positive engagement throughout the session indicates excellent content alignment")
-            interpretation.append("• This consistent engagement pattern suggests appropriate challenge level and effective pedagogy")
-        elif beg_emotion in ["Neutral", "Sad"] and end_emotion == "Happy":
-            interpretation.append("• Positive emotional trajectory indicates successful pedagogical intervention")
-            interpretation.append("• This improvement pattern demonstrates effective resolution of initial comprehension barriers")
-        elif beg_emotion == "Happy" and end_emotion in ["Sad", "Angry"]:
-            interpretation.append("• Declining emotional trajectory suggests increasing conceptual difficulty exceeded scaffolding")
-            interpretation.append("• This pattern indicates need for more gradual complexity progression or additional support")
-        elif beg_emotion in ["Sad", "Angry"] and end_emotion in ["Sad", "Angry"]:
-            interpretation.append("• Persistent negative affect throughout the session indicates fundamental misalignment")
-            interpretation.append("• This pattern suggests need for significant revision of content sequencing and explanatory approaches")
+            interpretation.append("Sustained positive engagement throughout the session indicates excellent content alignment and appropriate challenge level, suggesting effective pedagogical approach throughout.")
+        elif beg_emotion in ["Neutral", "Sad", "Angry", "Fear"] and end_emotion == "Happy":
+            interpretation.append("This positive emotional trajectory indicates successful pedagogical intervention that effectively resolved initial comprehension barriers through appropriate scaffolding and explanation.")
+        elif beg_emotion == "Happy" and end_emotion in ["Sad", "Angry", "Fear"]:
+            interpretation.append("This declining emotional trajectory suggests increasing conceptual difficulty exceeded scaffolding support, indicating need for more gradual complexity progression or additional integration activities.")
+        elif beg_emotion in ["Sad", "Angry", "Fear"] and end_emotion in ["Sad", "Angry", "Fear"]:
+            interpretation.append("Persistent challenging emotions throughout the session indicate fundamental misalignment between content presentation and student readiness, suggesting need for significant revision of scaffolding approach.")
+        elif beg_emotion == "Surprise" and end_emotion == "Surprise":
+            interpretation.append("Bookended cognitive activation suggests effective use of perspective-shifting approaches at both introduction and conclusion, creating a coherent narrative of conceptual transformation.")
+        elif beg_emotion in ["Neutral", "Sad"] and end_emotion == "Surprise":
+            interpretation.append("This activation journey indicates successful transformation of initial analytical or hesitant engagement into meaningful conceptual insights through effective teaching strategies.")
+        elif beg_emotion == "Disgust" and end_emotion in ["Neutral", "Happy"]:
+            interpretation.append("This improving trajectory suggests successful interventions that addressed initial strong negative reactions to create more positive engagement with challenging content.")
         
-        # Return as an array, not a joined string
+        # Add analysis of emotional diversity
+        all_emotions = set(list(beginning.keys()) + list(middle.keys()) + list(end.keys()))
+        if len(all_emotions) >= 4:
+            interpretation.append(f"The diverse emotional pattern (including {', '.join(all_emotions)}) indicates a complex learning journey with varied cognitive-affective states, suggesting a multifaceted engagement with challenging content.")
+        
         return interpretation
 
     def _generate_recommendations(self, emotions, dominant_emotion):
-        """Generate specific, actionable pedagogical recommendations"""
-        # Get phase emotions and percentages
+        """Generate specific, actionable pedagogical recommendations for all seven emotions"""
+        # Get phase emotions
         beg_emotion = max(emotions["beginning"].items(), key=lambda x: x[1])[0] if emotions.get("beginning") else "Neutral"
         mid_emotion = max(emotions["middle"].items(), key=lambda x: x[1])[0] if emotions.get("middle") else "Neutral"
         end_emotion = max(emotions["end"].items(), key=lambda x: x[1])[0] if emotions.get("end") else "Neutral"
         
-        # Create recommendations as an array (NOT a single string with newlines)
+        # Get secondary emotions (>15%) for more nuanced recommendations
+        beg_secondary = {k: v for k, v in emotions["beginning"].items() if v > 15 and k != beg_emotion}
+        mid_secondary = {k: v for k, v in emotions["middle"].items() if v > 15 and k != mid_emotion}
+        end_secondary = {k: v for k, v in emotions["end"].items() if v > 15 and k != end_emotion}
+        
+        # Create recommendations as an array
         recommendations = []
         
-        # Primary section based on overall pattern
+        # Primary recommendations based on dominant emotion
         recommendations.append(f"Strategic Teaching Adjustments for {dominant_emotion} Response")
         
-        # Dominant emotion recommendations
         if dominant_emotion == "Happy":
-            recommendations.append("• Leverage positive engagement by introducing deeper analytical challenges")
-            recommendations.append("• Implement student-led explanation activities to solidify conceptual understanding")
-            recommendations.append("• Incorporate application tasks that transfer knowledge to novel contexts")
-            recommendations.append("• Introduce deliberate cognitive conflicts to deepen critical thinking")
-            recommendations.append("• Expand conceptual frameworks with interdisciplinary connections")
+            recommendations.append("Leverage positive engagement by introducing deeper analytical challenges that extend conceptual understanding.")
+            recommendations.append("Implement peer-teaching opportunities where students articulate complex concepts to reinforce comprehension.")
+            recommendations.append("Introduce deliberate cognitive conflicts to promote critical evaluation of established knowledge.")
+            recommendations.append("Create application exercises that transfer conceptual knowledge to novel contexts or problems.")
+            recommendations.append("Balance confirmation of existing understanding with introduction of perspective-expanding frameworks.")
         elif dominant_emotion == "Neutral":
-            recommendations.append("• Enhance emotional investment through relevant case studies that connect to student interests")
-            recommendations.append("• Implement perspective-taking activities that require personal positioning on concepts")
-            recommendations.append("• Introduce multimodal representations for key concepts (visual, narrative, kinesthetic)")
-            recommendations.append("• Create deliberate moments of cognitive conflict through contrasting viewpoints")
-            recommendations.append("• Incorporate brief reflective writing to process emotional dimensions of content")
+            recommendations.append("Enhance emotional investment through case studies that connect abstract concepts to relevant real-world contexts.")
+            recommendations.append("Implement perspective-taking activities that require personal positioning on theoretical dilemmas.")
+            recommendations.append("Introduce multimodal representations of key concepts (visual, narrative, kinesthetic) to engage diverse learning styles.")
+            recommendations.append("Create deliberate moments of cognitive conflict through contrasting viewpoints or counterexamples.")
+            recommendations.append("Incorporate reflective writing prompts that connect content to students' professional or personal aspirations.")
         elif dominant_emotion == "Sad":
-            recommendations.append("• Create visual concept maps that explicitly show relationships between complex ideas")
-            recommendations.append("• Implement scaffolded worked examples with fading support as comprehension increases")
-            recommendations.append("• Develop alternative explanatory frameworks using varied metaphors and analogies")
-            recommendations.append("• Incorporate more frequent knowledge checks with specific feedback")
-            recommendations.append("• Structure smaller knowledge units with explicit success criteria")
+            recommendations.append("Create visual concept maps that explicitly show relationships between complex ideas to clarify conceptual structure.")
+            recommendations.append("Implement worked examples with explicit expert thinking processes followed by gradual fading of support.")
+            recommendations.append("Develop alternative explanatory frameworks using varied analogies that connect to different background knowledge.")
+            recommendations.append("Incorporate more frequent comprehension checks with specific corrective instruction for identified gaps.")
+            recommendations.append("Structure smaller knowledge units with explicit success criteria and immediate feedback opportunities.")
         elif dominant_emotion == "Angry":
-            recommendations.append("• Segment complex content into clearly defined conceptual units with explicit connections")
-            recommendations.append("• Provide procedural walkthroughs that demonstrate expert problem-solving processes")
-            recommendations.append("• Implement metacognitive modeling showing how to approach conceptual barriers")
-            recommendations.append("• Create explicit bridges between new concepts and established knowledge")
-            recommendations.append("• Use varied representational approaches for concepts generating resistance")
+            recommendations.append("Segment complex material into smaller conceptual units with explicit integrative connections between components.")
+            recommendations.append("Provide procedural guides for complex problem-solving processes with graduated complexity progression.")
+            recommendations.append("Implement metacognitive modeling that demonstrates expert approaches to conceptual barriers or challenges.")
+            recommendations.append("Create explicit bridges between new content and firmly established prior knowledge to reduce cognitive load.")
+            recommendations.append("Address potential sources of frustration by clarifying assessment expectations and success criteria.")
         elif dominant_emotion == "Surprise":
-            recommendations.append("• Design strategic revelation sequences that build on cognitive activation")
-            recommendations.append("• Implement comparative analysis activities highlighting unexpected relationships")
-            recommendations.append("• Develop application scenarios demonstrating counter-intuitive principles")
-            recommendations.append("• Balance surprising insights with structured frameworks for integration")
-            recommendations.append("• Create synthesis activities that connect surprising elements to core concepts")
+            recommendations.append("Build on cognitive activation by creating strategic revelation sequences that construct new insights systematically.")
+            recommendations.append("Implement comparative analysis activities that highlight unexpected relationships between seemingly disparate concepts.")
+            recommendations.append("Develop application scenarios that demonstrate counterintuitive implications of theoretical principles.")
+            recommendations.append("Create synthesis activities that help students integrate surprising insights into coherent knowledge structures.")
+            recommendations.append("Use moments of cognitive dissonance as anchors for deeper theoretical exploration and discussion.")
+        elif dominant_emotion == "Fear":
+            recommendations.append("Implement incremental difficulty progression with explicitly defined success criteria at each stage.")
+            recommendations.append("Provide cognitive scaffolding through guided practice with gradually increasing autonomy.")
+            recommendations.append("Create safe error exploration activities that normalize productive struggle as part of learning.")
+            recommendations.append("Develop metacognitive strategies for approaching challenging content that students can internalize.")
+            recommendations.append("Incorporate structured peer support mechanisms for complex problem-solving tasks to reduce isolation.")
+        elif dominant_emotion == "Disgust":
+            recommendations.append("Explicitly address strong negative reactions by acknowledging legitimate concerns while providing balanced perspective.")
+            recommendations.append("Create distanced analysis frameworks that allow objective examination of polarizing content.")
+            recommendations.append("Implement perspective-taking activities that promote empathetic understanding of challenging viewpoints.")
+            recommendations.append("Provide clear rationale for including potentially aversive content in relation to learning objectives.")
+            recommendations.append("Develop alternative pathways to achieve same learning outcomes through different contexts if appropriate.")
         
-        # Beginning phase recommendations
+        # Phase-specific recommendations
         recommendations.append("Beginning Phase Strategies")
         
         if beg_emotion == "Happy":
-            recommendations.append("• Capitalize on initial positive affect with challenging but achievable starter activities")
-            recommendations.append("• Use think-pair-share techniques to activate diverse perspectives early")
-            recommendations.append("• Present provocative questions that leverage existing engagement")
-            recommendations.append("• Build on positive momentum by connecting new content to successful prior knowledge")
+            recommendations.append("Capitalize on initial positive affect with challenging but achievable starter activities that maintain engagement.")
+            recommendations.append("Use think-pair-share techniques to activate diverse perspectives that build on initial enthusiasm.")
+            recommendations.append("Present provocative questions that leverage existing engagement to deepen analytical thinking.")
         elif beg_emotion == "Neutral":
-            recommendations.append("• Enhance emotional investment through personally relevant examples")
-            recommendations.append("• Implement brief paired discussions to increase active participation")
-            recommendations.append("• Use narrative framing to create emotional anchors for abstract concepts")
-            recommendations.append("• Present clear advance organizers showing the session's conceptual roadmap")
+            recommendations.append("Enhance emotional investment through personally relevant examples that connect to student experiences.")
+            recommendations.append("Implement brief paired discussions to increase active participation from the outset.")
+            recommendations.append("Use narrative framing to create emotional anchors for abstract theoretical concepts.")
         elif beg_emotion == "Sad":
-            recommendations.append("• Begin with explicit connections to familiar concepts before new material")
-            recommendations.append("• Implement a knowledge activation assessment to address prerequisite gaps")
-            recommendations.append("• Use scaffolded entry points with graduated challenge levels")
-            recommendations.append("• Establish clear relevance of content to student motivations and interests")
+            recommendations.append("Begin with explicit connections to familiar concepts before introducing new material to build confidence.")
+            recommendations.append("Implement a knowledge activation assessment to identify and address specific prerequisite gaps.")
+            recommendations.append("Use scaffolded entry points with graduated challenge levels to promote early success experiences.")
         elif beg_emotion == "Angry":
-            recommendations.append("• Address potential frustrations through explicit learning objectives")
-            recommendations.append("• Implement brief reflection on specific aspects causing resistance")
-            recommendations.append("• Create clear conceptual framework showing how components interconnect")
-            recommendations.append("• Use expectation management to align perceptions with instructional approach")
+            recommendations.append("Address sources of frustration through explicit learning objectives that clarify purpose and relevance.")
+            recommendations.append("Implement brief reflection on specific aspects causing resistance to surface misconceptions.")
+            recommendations.append("Create clear conceptual framework showing how components interconnect to reduce perceived chaos.")
+        elif beg_emotion == "Surprise":
+            recommendations.append("Build on initial cognitive activation with structured exploration of counterintuitive concepts.")
+            recommendations.append("Channel heightened attention toward key theoretical principles that explain surprising observations.")
+            recommendations.append("Use initial surprise as foundation for comparative analysis of conventional versus new perspectives.")
+        elif beg_emotion == "Fear":
+            recommendations.append("Begin with clear articulation of support structures and resources available for challenging content.")
+            recommendations.append("Implement early success experiences that build confidence before introducing complex concepts.")
+            recommendations.append("Provide explicit study strategies specifically tailored to the type of content being presented.")
+        elif beg_emotion == "Disgust":
+            recommendations.append("Acknowledge potential controversial aspects while establishing respectful analytical frameworks.")
+            recommendations.append("Begin with objective examination of underlying principles before addressing polarizing applications.")
+            recommendations.append("Establish clear ground rules for discussions of potentially contentious material.")
         
-        # Middle phase recommendations
+        # Core content recommendations
         recommendations.append("Core Content Delivery Strategies")
         
         if mid_emotion == "Happy":
-            recommendations.append("• Maintain engagement by incorporating complex problem-solving challenges")
-            recommendations.append("• Implement peer teaching opportunities for knowledge reinforcement")
-            recommendations.append("• Introduce graduated complexity with appropriate scaffolding")
-            recommendations.append("• Create deliberate application exercises connecting theory to practice")
+            recommendations.append("Maintain engagement by introducing graduated analytical challenges that extend conceptual understanding.")
+            recommendations.append("Implement collaborative problem-solving activities that leverage positive group dynamics.")
+            recommendations.append("Create application opportunities that transfer theoretical knowledge to authentic contexts.")
         elif mid_emotion == "Neutral":
-            recommendations.append("• Introduce perspective-shifting examples to create emotional anchors")
-            recommendations.append("• Implement collaborative problem-solving requiring emotional investment")
-            recommendations.append("• Create conceptual conflicts that require resolution through discussion")
-            recommendations.append("• Use varied representation modes (visual, verbal, experiential)")
+            recommendations.append("Introduce perspective-shifting examples that create emotional anchors for abstract concepts.")
+            recommendations.append("Implement debate or dialogic activities that require emotional investment in theoretical positions.")
+            recommendations.append("Create conceptual conflicts that require resolution through collaborative sense-making.")
         elif mid_emotion == "Sad":
-            recommendations.append("• Restructure complex explanations into smaller conceptual units")
-            recommendations.append("• Provide multiple explanatory approaches using different analogies")
-            recommendations.append("• Implement more frequent comprehension checks with corrective feedback")
-            recommendations.append("• Create visual representations of abstract relationships")
-            recommendations.append("• Incorporate successful student examples to demonstrate attainability")
+            recommendations.append("Restructure complex explanations into smaller conceptual units with explicit connections between components.")
+            recommendations.append("Provide multiple explanatory approaches using different analogies or representational systems.")
+            recommendations.append("Implement more frequent comprehension checks with specific corrective instruction.")
         elif mid_emotion == "Angry":
-            recommendations.append("• Segment challenging content with clearer developmental progression")
-            recommendations.append("• Provide procedural guides for complex analytical tasks")
-            recommendations.append("• Implement metacognitive modeling showing expert approaches to difficulties")
-            recommendations.append("• Create explicit connections between sequential concepts")
-            recommendations.append("• Address potential sources of cognitive overload")
+            recommendations.append("Segment challenging content with clearer developmental progression to reduce cognitive overload.")
+            recommendations.append("Provide procedural guides for complex analytical tasks with explicit expert thinking processes.")
+            recommendations.append("Create explicit connections between sequential concepts to prevent fragmented understanding.")
+        elif mid_emotion == "Surprise":
+            recommendations.append("Structure comparative analyses that highlight counterintuitive relationships between concepts.")
+            recommendations.append("Implement synthesis activities that integrate surprising insights into coherent frameworks.")
+            recommendations.append("Use cognitive conflict productively through structured resolution activities.")
+        elif mid_emotion == "Fear":
+            recommendations.append("Provide scaffolded approaches to complex tasks with gradually increasing autonomy.")
+            recommendations.append("Implement expert modeling of approaches to challenging content or problem-solving processes.")
+            recommendations.append("Create safe practice opportunities with targeted feedback before high-stakes application.")
+        elif mid_emotion == "Disgust":
+            recommendations.append("Implement analytical frameworks that allow objective examination of challenging content.")
+            recommendations.append("Create structured dialogue opportunities that explore multiple perspectives on controversial issues.")
+            recommendations.append("Provide alternative contexts for applying similar principles if particular applications remain problematic.")
         
-        # End phase recommendations
+        # Conclusion phase recommendations
         recommendations.append("Knowledge Integration Strategies")
         
         if end_emotion == "Happy":
-            recommendations.append("• Cement positive resolution through application to novel contexts")
-            recommendations.append("• Implement brief synthesis activities demonstrating concept mastery")
-            recommendations.append("• Create forward-looking connections to upcoming content")
-            recommendations.append("• Use student-led summarization to reinforce key takeaways")
+            recommendations.append("Cement positive resolution through application to novel contexts that extend conceptual understanding.")
+            recommendations.append("Implement brief synthesis activities that reinforce successful knowledge integration.")
+            recommendations.append("Create forward-looking connections to upcoming content that maintains engagement momentum.")
         elif end_emotion == "Neutral":
-            recommendations.append("• Strengthen session closure with explicit summary of key concepts")
-            recommendations.append("• Implement brief reflection connecting content to broader learning goals")
-            recommendations.append("• Create conceptual integration activities highlighting relationships")
-            recommendations.append("• Use elaborative interrogation to deepen processing")
+            recommendations.append("Strengthen session closure with explicit summary of key conceptual relationships and principles.")
+            recommendations.append("Implement brief reflection connecting content to broader learning objectives or professional relevance.")
+            recommendations.append("Create conceptual integration activities that highlight relationships between core concepts.")
         elif end_emotion == "Sad":
-            recommendations.append("• Develop clearer concept integration activities for session closure")
-            recommendations.append("• Provide explicit frameworks for applying theoretical content")
-            recommendations.append("• Create resource guides addressing unresolved questions")
-            recommendations.append("• Implement targeted micro-review of challenging concepts")
-            recommendations.append("• Use exit tickets to identify specific areas needing follow-up")
+            recommendations.append("Develop clearer concept integration activities that address unresolved questions or confusion.")
+            recommendations.append("Provide specific resources for additional support on identified challenging concepts.")
+            recommendations.append("Implement exit tickets that identify specific areas requiring follow-up in subsequent sessions.")
+        elif end_emotion == "Angry":
+            recommendations.append("Address sources of frustration through clarification of assessment expectations or applications.")
+            recommendations.append("Provide additional scaffolding resources for independent practice with challenging concepts.")
+            recommendations.append("Create structured review opportunities that address identified conceptual barriers.")
         elif end_emotion == "Surprise":
-            recommendations.append("• Capture insights through reflective 'Aha moment' documentation")
-            recommendations.append("• Connect surprising findings to broader theoretical frameworks")
-            recommendations.append("• Challenge students to generate additional applications of insights")
-            recommendations.append("• Create synthesis activities that solidify perspective shifts")
+            recommendations.append("Capture insights through reflective activities that solidify understanding of perspective-shifting concepts.")
+            recommendations.append("Connect surprising insights to broader theoretical frameworks that create coherent knowledge structures.")
+            recommendations.append("Challenge students to generate additional applications of counterintuitive principles.")
+        elif end_emotion == "Fear":
+            recommendations.append("Provide clear guidance for applying complex concepts in upcoming assessments or applications.")
+            recommendations.append("Create review structures that systematically address areas of uncertainty or anxiety.")
+            recommendations.append("Implement confidence-building synthesis activities that demonstrate successful knowledge integration.")
+        elif end_emotion == "Disgust":
+            recommendations.append("Create structured reflection on emotional responses to challenging content as part of learning process.")
+            recommendations.append("Implement balanced perspective-taking activities that acknowledge complexity of controversial issues.")
+            recommendations.append("Provide alternative assessment options if particular applications remain problematic.")
         
-        # Add specific recommendations based on emotional trajectory
-        recommendations.append("Targeted Instructional Adjustments")
+        # Emotional journey recommendations
+        recommendations.append("Emotional Trajectory Strategies")
         
-        if beg_emotion in ["Happy", "Neutral"] and end_emotion in ["Sad", "Angry"]:
-            recommendations.append("• Restructure content complexity progression with more gradual difficulty increases")
-            recommendations.append("• Insert strategic comprehension checks before introducing new complexities")
-            recommendations.append("• Create clearer conceptual bridges between fundamental and advanced elements")
-            recommendations.append("• Develop supplementary resources for independent reinforcement")
-        elif beg_emotion in ["Sad", "Angry"] and end_emotion == "Happy":
-            recommendations.append("• Document successful intervention techniques that resolved initial comprehension barriers")
-            recommendations.append("• Apply effective scaffolding approaches to other challenging content areas")
-            recommendations.append("• Analyze specific explanatory methods that successfully clarified difficult concepts")
-            recommendations.append("• Formalize the progression pattern that achieved positive emotional transition")
-        elif beg_emotion in ["Sad", "Angry"] and end_emotion in ["Sad", "Angry"]:
-            recommendations.append("• Significantly revise conceptual sequencing with clearer developmental progression")
-            recommendations.append("• Create prerequisite modules addressing foundational knowledge gaps")
-            recommendations.append("• Develop alternative explanation frameworks using different representational systems")
-            recommendations.append("• Implement more frequent formative assessment with immediate corrective instruction")
+        # Specific emotional journey patterns
+        if beg_emotion in ["Happy", "Neutral"] and end_emotion in ["Sad", "Angry", "Fear"]:
+            recommendations.append("Restructure content complexity progression with more gradual increases in difficulty throughout session.")
+            recommendations.append("Insert strategic comprehension checks before introducing new complexities to prevent cumulative confusion.")
+            recommendations.append("Create clearer conceptual bridges between fundamental and advanced elements to support knowledge integration.")
+        elif beg_emotion in ["Sad", "Angry", "Fear"] and end_emotion in ["Happy", "Neutral"]:
+            recommendations.append("Document successful intervention techniques that resolved initial comprehension barriers for future application.")
+            recommendations.append("Apply similar scaffolding approaches to other challenging content areas within the curriculum.")
+            recommendations.append("Analyze specific explanatory methods that successfully clarified difficult concepts for systematic application.")
+        elif beg_emotion in ["Sad", "Angry", "Fear"] and end_emotion in ["Sad", "Angry", "Fear"]:
+            recommendations.append("Fundamentally revise conceptual sequencing with clearer developmental progression from simple to complex.")
+            recommendations.append("Create prerequisite modules addressing foundational knowledge gaps identified during session.")
+            recommendations.append("Develop alternative explanation frameworks using different representational systems for core concepts.")
+        elif beg_emotion in ["Neutral", "Sad"] and mid_emotion == "Surprise" and end_emotion in ["Happy", "Neutral"]:
+            recommendations.append("Document this productive cognitive activation pattern for application to other challenging content areas.")
+            recommendations.append("Analyze specific elements that created successful cognitive breakthroughs for systematic application.")
+            recommendations.append("Expand use of counterintuitive examples that lead to deeper conceptual understanding.")
+        elif beg_emotion == "Disgust" and end_emotion in ["Neutral", "Happy"]:
+            recommendations.append("Document successful approaches to addressing strong negative reactions for future application.")
+            recommendations.append("Create structured frameworks for addressing potentially controversial content across curriculum.")
+            recommendations.append("Analyze specific intervention methods that successfully transformed aversion to engagement.")
         
-        # Return as an array, not a joined string
         return recommendations
 
 detector = RealtimeEmotionDetector()
