@@ -129,7 +129,19 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
         <Card title="Interpretation" variant="warning">
           <div className="analysis-section">
             <div className="prose max-w-none">
-              <p className="whitespace-pre-line">{analysisResults.interpretation}</p>
+              {Array.isArray(analysisResults.interpretation) ? 
+                analysisResults.interpretation.map((point, index) => {
+                  if (point.startsWith("•")) {
+                    // This is a bullet point - render as indented paragraph
+                    return <p key={index} className="ml-6 my-1">{point}</p>;
+                  } else {
+                    // This is a section header - render as bold header with spacing
+                    return <h4 key={index} className="mt-4 mb-2 font-bold text-lg">{point}</h4>;
+                  }
+                })
+                :
+                <p className="whitespace-pre-line">{analysisResults.interpretation}</p>
+              }
             </div>
           </div>
         </Card>
@@ -138,16 +150,19 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
       {analysisResults.educational_recommendations && (
         <Card title="Educational Recommendations">
           <div className="analysis-section">
-            <ul className="space-y-3">
-              {analysisResults.educational_recommendations.map((rec, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="inline-block bg-primary-color text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  <span>{rec}</span>
-                </li>
-              ))}
-            </ul>
+            {Array.isArray(analysisResults.educational_recommendations) ? 
+              analysisResults.educational_recommendations.map((rec, index) => {
+                if (rec.startsWith("•")) {
+                  // This is a bullet point - render as indented item
+                  return <p key={index} className="ml-6 my-1">{rec}</p>;
+                } else {
+                  // This is a section header - render as bold header with spacing
+                  return <h4 key={index} className="mt-4 mb-2 font-bold text-lg">{rec}</h4>;
+                }
+              })
+              :
+              <p className="whitespace-pre-line">{analysisResults.educational_recommendations}</p>
+            }
           </div>
         </Card>
       )}

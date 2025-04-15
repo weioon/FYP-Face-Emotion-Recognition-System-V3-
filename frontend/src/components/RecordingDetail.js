@@ -206,7 +206,19 @@ const RecordingDetail = () => {
           Interpretation
         </h3>
         <div className="interpretation">
-          {recording.analysis_data.interpretation || "The emotional state was relatively consistent throughout the session."}
+          {Array.isArray(recording.analysis_data.interpretation) ? 
+            recording.analysis_data.interpretation.map((point, index) => {
+              if (point.startsWith("•")) {
+                // This is a bullet point - render as indented paragraph
+                return <p key={index} className="ml-6 my-1">{point}</p>;
+              } else {
+                // This is a section header - render as bold header with spacing
+                return <h4 key={index} className="mt-4 mb-2 font-bold text-lg">{point}</h4>;
+              }
+            })
+            :
+            recording.analysis_data.interpretation || "The emotional state was relatively consistent throughout the session."
+          }
         </div>
       </div>
 
@@ -251,18 +263,17 @@ const RecordingDetail = () => {
           Educational Recommendations
         </h3>
         <div className="recommendations">
-          {(recording.analysis_data.educational_recommendations && recording.analysis_data.educational_recommendations.length > 0) ? 
-            recording.analysis_data.educational_recommendations.map((rec, index) => (
-              <div key={index} className="recommendation-item">
-                {rec}
-              </div>
-            )) : 
-            (recording.analysis_data.recommendations && recording.analysis_data.recommendations.length > 0) ?
-            recording.analysis_data.recommendations.map((rec, index) => (
-              <div key={index} className="recommendation-item">
-                {rec}
-              </div>
-            )) : 
+          {Array.isArray(recording.analysis_data.educational_recommendations) ? 
+            recording.analysis_data.educational_recommendations.map((rec, index) => {
+              if (rec.startsWith("•")) {
+                // This is a bullet point - render as indented item
+                return <p key={index} className="ml-6 my-1">{rec}</p>;
+              } else {
+                // This is a section header - render as bold header with spacing
+                return <h4 key={index} className="mt-4 mb-2 font-bold text-lg">{rec}</h4>;
+              }
+            })
+            :
             <div className="recommendation-item">
               Based on the emotional data, maintaining the current teaching approach appears effective.
             </div>
