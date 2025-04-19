@@ -117,6 +117,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     const file = event.target.files[0];
     if (!file) return;
     
+    // Set the file object URL as selectedImage
     setSelectedImage(URL.createObjectURL(file));
     setIsProcessingImage(true);
     
@@ -283,71 +284,87 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         )}
 
         <div className="image-upload-section">
-          <h3>Upload Image for Emotion Detection</h3>
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleImageUpload} 
-            disabled={isProcessingImage}
-          />
+          <h3>
+            <i className="fas fa-cloud-upload-alt"></i> 
+            Upload Image for Emotion Detection
+          </h3>
           
-          {isProcessingImage && <p>Processing image...</p>}
-          
-          {selectedImage && (
-            <div className="uploaded-image-container" style={{ position: 'relative', marginTop: '20px' }}>
-              <img 
-                src={selectedImage} 
-                alt="Uploaded" 
-                style={{ maxWidth: '100%', maxHeight: '500px' }} 
-              />
-              
-              {/* Draw emotion boxes on the image */}
-              {imageResults && imageResults.map((emotion, index) => {
-                const [x, y, xMax, yMax] = emotion.face_location;
-                return (
-                  <div key={index} style={{
-                    position: 'absolute',
-                    left: `${(x / selectedImage.width) * 100}%`,
-                    top: `${(y / selectedImage.height) * 100}%`,
-                    width: `${((xMax - x) / selectedImage.width) * 100}%`,
-                    height: `${((yMax - y) / selectedImage.height) * 100}%`,
-                    border: '2px solid #00ff00',
-                    boxSizing: 'border-box'
-                  }}>
-                    <div style={{
-                      background: 'rgba(0, 255, 0, 0.7)',
-                      color: 'white',
-                      padding: '2px 6px',
-                      position: 'absolute',
-                      top: '-24px',
-                      left: '0',
-                      fontSize: '12px',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {emotion.dominant_emotion}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          {imageResults && imageResults.length > 0 && (
-            <div className="emotion-results" style={{ marginTop: '20px' }}>
-              <h4>Detected Emotions:</h4>
-              <ul>
-                {imageResults.map((emotion, index) => (
-                  <li key={index}>
-                    Face {index+1}: {emotion.dominant_emotion} 
-                    ({Object.entries(emotion.emotion_scores)
-                      .map(([emotion, score]) => `${emotion}: ${score.toFixed(1)}%`)
-                      .join(', ')})
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="custom-file-upload">
+            <input 
+              type="file" 
+              id="file-upload" 
+              accept="image/*" 
+              onChange={handleImageUpload} 
+              disabled={isProcessingImage}
+              className="file-input-hidden"
+            />
+            <label htmlFor="file-upload" className={`file-upload-label ${isProcessingImage ? 'disabled' : ''}`}>
+              <i className="fas fa-image"></i>
+              {isProcessingImage ? 'Processing...' : 'Choose an image'}
+            </label>
+            
+            {selectedImage && (
+              <div className="selected-file-name">
+                {selectedImage.substring(selectedImage.lastIndexOf('/') + 1)}
+              </div>
+            )}
+          </div>
         </div>
+        
+        {selectedImage && (
+          <div className="uploaded-image-container" style={{ position: 'relative', marginTop: '20px' }}>
+            <img 
+              src={selectedImage} 
+              alt="Uploaded" 
+              style={{ maxWidth: '100%', maxHeight: '500px' }} 
+            />
+            
+            {/* Draw emotion boxes on the image */}
+            {imageResults && imageResults.map((emotion, index) => {
+              const [x, y, xMax, yMax] = emotion.face_location;
+              return (
+                <div key={index} style={{
+                  position: 'absolute',
+                  left: `${(x / selectedImage.width) * 100}%`,
+                  top: `${(y / selectedImage.height) * 100}%`,
+                  width: `${((xMax - x) / selectedImage.width) * 100}%`,
+                  height: `${((yMax - y) / selectedImage.height) * 100}%`,
+                  border: '2px solid #00ff00',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{
+                    background: 'rgba(0, 255, 0, 0.7)',
+                    color: 'white',
+                    padding: '2px 6px',
+                    position: 'absolute',
+                    top: '-24px',
+                    left: '0',
+                    fontSize: '12px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {emotion.dominant_emotion}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {imageResults && imageResults.length > 0 && (
+          <div className="emotion-results" style={{ marginTop: '20px' }}>
+            <h4>Detected Emotions:</h4>
+            <ul>
+              {imageResults.map((emotion, index) => (
+                <li key={index}>
+                  Face {index+1}: {emotion.dominant_emotion} 
+                  ({Object.entries(emotion.emotion_scores)
+                    .map(([emotion, score]) => `${emotion}: ${score.toFixed(1)}%`)
+                    .join(', ')})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </Card>
   );
