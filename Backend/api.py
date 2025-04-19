@@ -271,3 +271,33 @@ async def detect_emotion(request: ImageRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
+# Add these imports if not already present
+from fastapi import File, UploadFile
+import io
+import cv2
+import numpy as np
+
+# Add this new endpoint alongside your other endpoints
+@app.post("/detect_emotion_from_image")
+async def detect_emotion_from_image(file: UploadFile = File(...)):
+    try:
+        # Read the image file
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+        
+        # Process the image and detect faces/emotions using the detector
+        processed_data = detector.process_uploaded_image(image)
+        
+        return {
+            "status": "success",
+            "emotions": processed_data
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")

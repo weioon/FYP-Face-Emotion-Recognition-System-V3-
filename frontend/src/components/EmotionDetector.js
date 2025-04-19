@@ -11,6 +11,9 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
   const [buttonLock, setButtonLock] = useState(false);
   const captureIntervalRef = useRef(null);
   const [debugInfo, setDebugInfo] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageResults, setImageResults] = useState(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   // Handle camera capture toggle
   const handleCameraToggle = () => {
@@ -106,6 +109,41 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     } catch (err) {
       console.error("Error capturing frame:", err);
       setDebugInfo(`Error: ${err.message}`);
+    }
+  };
+
+  // Handle image uploads
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setSelectedImage(URL.createObjectURL(file));
+    setIsProcessingImage(true);
+    
+    try {
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Send to backend
+      const response = await axios.post(
+        'http://localhost:8000/detect_emotion_from_image', 
+        formData, 
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      if (response.data && response.data.emotions) {
+        setImageResults(response.data.emotions);
+        setDebugInfo(`Detected ${response.data.emotions.length} faces in uploaded image`);
+      } else {
+        setImageResults([]);
+        setDebugInfo('No emotions detected in image');
+      }
+    } catch (err) {
+      console.error("Error processing image:", err);
+      setDebugInfo(`Error: ${err.message}`);
+    } finally {
+      setIsProcessingImage(false);
     }
   };
 
@@ -243,6 +281,73 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
             <p>Processing request...</p>
           </div>
         )}
+
+        <div className="image-upload-section">
+          <h3>Upload Image for Emotion Detection</h3>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleImageUpload} 
+            disabled={isProcessingImage}
+          />
+          
+          {isProcessingImage && <p>Processing image...</p>}
+          
+          {selectedImage && (
+            <div className="uploaded-image-container" style={{ position: 'relative', marginTop: '20px' }}>
+              <img 
+                src={selectedImage} 
+                alt="Uploaded" 
+                style={{ maxWidth: '100%', maxHeight: '500px' }} 
+              />
+              
+              {/* Draw emotion boxes on the image */}
+              {imageResults && imageResults.map((emotion, index) => {
+                const [x, y, xMax, yMax] = emotion.face_location;
+                return (
+                  <div key={index} style={{
+                    position: 'absolute',
+                    left: `${(x / selectedImage.width) * 100}%`,
+                    top: `${(y / selectedImage.height) * 100}%`,
+                    width: `${((xMax - x) / selectedImage.width) * 100}%`,
+                    height: `${((yMax - y) / selectedImage.height) * 100}%`,
+                    border: '2px solid #00ff00',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{
+                      background: 'rgba(0, 255, 0, 0.7)',
+                      color: 'white',
+                      padding: '2px 6px',
+                      position: 'absolute',
+                      top: '-24px',
+                      left: '0',
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {emotion.dominant_emotion}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {imageResults && imageResults.length > 0 && (
+            <div className="emotion-results" style={{ marginTop: '20px' }}>
+              <h4>Detected Emotions:</h4>
+              <ul>
+                {imageResults.map((emotion, index) => (
+                  <li key={index}>
+                    Face {index+1}: {emotion.dominant_emotion} 
+                    ({Object.entries(emotion.emotion_scores)
+                      .map(([emotion, score]) => `${emotion}: ${score.toFixed(1)}%`)
+                      .join(', ')})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   );

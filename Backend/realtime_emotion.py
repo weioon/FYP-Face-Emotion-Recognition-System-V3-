@@ -9,6 +9,8 @@ import base64
 import os
 import time
 from io import BytesIO
+from fastapi import File, UploadFile
+import io
 
 app = FastAPI()
 
@@ -766,6 +768,75 @@ class RealtimeEmotionDetector:
         
         return recommendations
 
+    def process_uploaded_image(self, image):
+        """Process an uploaded image and detect emotions"""
+        try:
+            # Make a copy to avoid modifying the original
+            img = image.copy()
+            frame_height, frame_width = img.shape[:2]
+            
+            # Resize image for faster processing
+            scale = 0.5
+            small_frame = cv2.resize(img, (0, 0), fx=scale, fy=scale)
+            
+            emotions_detected = []
+            
+            # Process with DeepFace
+            results = DeepFace.analyze(
+                small_frame,
+                actions=['emotion'],
+                enforce_detection=False,
+                detector_backend='opencv',
+                silent=True
+            )
+            
+            # Normalize results
+            if not isinstance(results, list):
+                results = [results]
+            
+            for result in results:
+                if 'emotion' in result:
+                    # Get face rectangle
+                    region = result.get('region', {})
+                    
+                    # Scale coordinates back to original size
+                    x = int(region.get('x', 0) / scale)
+                    y = int(region.get('y', 0) / scale)
+                    w = int(region.get('w', 0) / scale)
+                    h = int(region.get('h', 0) / scale)
+                    
+                    # Get emotions with de-biasing for neutral emotion
+                    emotion_scores = result['emotion']
+                    
+                    # De-bias the emotions - reduce neutral bias
+                    if emotion_scores.get('neutral', 0) > 60:
+                        # Find second highest emotion
+                        emotions_except_neutral = {k: v for k, v in emotion_scores.items() if k != 'neutral'}
+                        if emotions_except_neutral:
+                            second_emotion, second_value = max(emotions_except_neutral.items(), key=lambda x: x[1])
+                            
+                            # Boost non-neutral emotions if they're reasonably strong
+                            if second_value > 10:
+                                boost = min(30, second_value * 0.8)  # Boost up to 30%
+                                emotion_scores['neutral'] -= boost
+                                emotion_scores[second_emotion] += boost
+                    
+                    # Re-determine dominant emotion after adjustments
+                    dominant_emotion = max(emotion_scores.items(), key=lambda x: x[1])[0].lower().capitalize()
+                    
+                    emotions_detected.append({
+                        'face_location': [x, y, x+w, y+h],
+                        'dominant_emotion': dominant_emotion,
+                        'emotion_scores': emotion_scores
+                    })
+            
+            return emotions_detected
+        except Exception as e:
+            print(f"Error in process_uploaded_image: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
 detector = RealtimeEmotionDetector()
 
 @app.post("/detect_emotion")
@@ -800,6 +871,29 @@ async def stop_recording():
     detector.stop_recording()
     analysis_result = detector.analyze_emotions()
     return analysis_result
+
+@app.post("/detect_emotion_from_image")
+async def detect_emotion_from_image(file: UploadFile = File(...)):
+    try:
+        # Read the image file
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if image is None:
+            raise HTTPException(status_code=400, detail="Invalid image file")
+        
+        # Process the image and detect faces/emotions
+        processed_data = detector.process_uploaded_image(image)
+        
+        return {
+            "status": "success",
+            "emotions": processed_data
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
 def main():
     detector = RealtimeEmotionDetector()
