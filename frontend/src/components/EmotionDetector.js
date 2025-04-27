@@ -180,9 +180,6 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     };
   }, []); // Run cleanup only once on unmount
 
-  // Define border color based on recording state
-  const greenBorderColor = 'rgba(46, 204, 113, 0.8)'; // Green for detection boxes
-
   return (
     <Card title="Emotion Detector" variant="dark">
       <div className="webcam-container" style={{ position: 'relative', minHeight: '300px', background: '#333', borderRadius: 'var(--border-radius)' }}>
@@ -231,7 +228,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
                     top: `${topPercent}%`,
                     width: `${widthPercent}%`,
                     height: `${heightPercent}%`,
-                    border: `3px solid ${greenBorderColor}`,
+                    border: `3px solid rgba(46, 204, 113, 0.8)`, // Green for detection boxes
                     boxSizing: 'border-box',
                     zIndex: 10
                   }}
@@ -240,7 +237,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
                     position: 'absolute',
                     top: '-28px', // Position label above the box
                     left: '0',
-                    background: greenBorderColor,
+                    background: 'rgba(46, 204, 113, 0.8)',
                     color: 'white',
                     padding: '4px 8px',
                     borderRadius: '4px',
@@ -288,28 +285,6 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
             </>
           )}
         </Button>
-
-        {/* Remove the separate Start/Stop Camera button */}
-        {/*
-        <Button
-          onClick={handleCameraToggle}
-          variant={isCapturing ? 'danger' : 'primary'}
-          disabled={buttonLock}
-        >
-          // ... removed ...
-        </Button>
-        */}
-
-        {/* Remove the separate Start/Stop Recording button */}
-        {/*
-        <Button
-          onClick={handleRecordingToggle}
-          variant={isRecording ? 'warning' : 'success'}
-          disabled={!isCapturing || buttonLock} // Was disabled if camera wasn't capturing
-        >
-         // ... removed ...
-        </Button>
-        */}
       </div>
 
       {/* Keep button lock indicator */}
@@ -319,10 +294,10 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         </div>
       )}
 
-      {/* Image Upload Section - No changes needed here */}
+      {/* Image Upload Section */}
       <div className="image-upload-section" style={{ marginTop: '2rem', borderTop: '1px solid var(--neutral-dark)', paddingTop: '1.5rem' }}>
         <h3 style={{ textAlign: 'center', marginBottom: '1rem', color: 'var(--neutral-lightest)' }}>
-          <i className="fas fa-cloud_upload-alt mr-2"></i>
+          <i className="fas fa-cloud-upload-alt mr-2"></i>
           Upload Image for Emotion Detection
         </h3>
 
@@ -349,52 +324,85 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         </div>
 
         {selectedImage && (
-          <div className="uploaded-image-container" style={{ position: 'relative', marginTop: '20px', textAlign: 'center' }}>
-            <img
-              src={selectedImage}
-              alt="Uploaded"
-              style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: 'var(--border-radius)' }}
-            />
+          <>
+            {/* Container for the image */}
+            <div className="uploaded-image-container">
+              <img
+                src={selectedImage}
+                alt="Uploaded"
+              />
 
-            {/* Draw emotion boxes on the uploaded image */}
-            {imageResults && imageResults.map((emotion, index) => {
-              // Coordinates from backend are [x_min, y_min, x_max, y_max]
-              const [x, y, xMax, yMax] = emotion.face_location;
-              // We need the original image dimensions to calculate percentages accurately.
-              // If not available, these boxes might be positioned incorrectly.
-              // For simplicity, let's assume the display size might differ from original.
-              // It's better to draw on the backend or pass dimensions.
-              // Placeholder positioning (might be inaccurate):
-              return (
-                <div key={index} style={{
-                  position: 'absolute',
-                  // These need calculation based on displayed image size vs original
-                  // left: `${(x / imgWidth) * 100}%`,
-                  // top: `${(y / imgHeight) * 100}%`,
-                  // width: `${((xMax - x) / imgWidth) * 100}%`,
-                  // height: `${((yMax - y) / imgHeight) * 100}%`,
-                  border: `3px solid ${greenBorderColor}`,
-                  boxSizing: 'border-box',
-                  pointerEvents: 'none' // Ensure overlay doesn't block interactions
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: '-28px',
-                    left: '0',
-                    background: greenBorderColor,
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {emotion.dominant_emotion}
+              {/* Draw emotion boxes on the uploaded image */}
+              {imageResults && imageResults.map((emotion, index) => {
+                // Coordinates from backend are [x_min, y_min, x_max, y_max]
+                const [x, y, xMax, yMax] = emotion.face_location;
+                // IMPORTANT: Accurate positioning requires knowing the ratio between the
+                // original image dimensions and the displayed image dimensions.
+                // The following percentages are placeholders and might be inaccurate.
+                // For accurate display, consider calculating on the backend or passing dimensions.
+                const placeholderImgWidth = 640; // Assume a width for placeholder calculation
+                const placeholderImgHeight = 480; // Assume a height for placeholder calculation
+                const leftPercent = (x / placeholderImgWidth) * 100;
+                const topPercent = (y / placeholderImgHeight) * 100;
+                const widthPercent = ((xMax - x) / placeholderImgWidth) * 100;
+                const heightPercent = ((yMax - y) / placeholderImgHeight) * 100;
+
+                return (
+                  <div
+                    key={index}
+                    className="image-emotion-box" // Use class for border/shadow
+                    style={{
+                      // Keep inline styles ONLY for positioning
+                      left: `${leftPercent}%`,
+                      top: `${topPercent}%`,
+                      width: `${widthPercent}%`,
+                      height: `${heightPercent}%`,
+                    }}
+                  >
+                    <div className="image-emotion-label"> {/* Use class for label style */}
+                      {emotion.dominant_emotion}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {/* Display analysis results BELOW the image */}
+            {imageResults && imageResults.length > 0 && (
+              <div className="image-analysis-details">
+                <h4>Analysis Results</h4>
+                {imageResults.map((result, index) => (
+                  <div key={index} className="face-result-item">
+                    <p><strong>Face {index + 1}:</strong> Dominant Emotion - <strong>{result.dominant_emotion}</strong></p>
+                    {result.emotion_scores && (
+                      <>
+                        <p>Emotion Scores:</p>
+                        <ul>
+                          {Object.entries(result.emotion_scores)
+                            .sort(([, scoreA], [, scoreB]) => scoreB - scoreA) // Sort by score descending
+                            .map(([emotion, score]) => (
+                              <li key={emotion}>
+                                {emotion.charAt(0).toUpperCase() + emotion.slice(1)}: {score.toFixed(1)}%
+                              </li>
+                            ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Handle case where image is selected but no faces detected */}
+            {imageResults && imageResults.length === 0 && (
+               <div className="image-analysis-details">
+                 <h4>Analysis Results</h4>
+                 <div className="face-result-item">
+                   <p>No faces were detected in the uploaded image.</p>
+                 </div>
+               </div>
+            )}
+          </>
         )}
       </div>
     </Card>

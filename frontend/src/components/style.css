@@ -740,31 +740,22 @@ h1, h2, h3, h4, h5, h6 {
 .auth-switch {
   text-align: center;
   margin-top: 28px;
-  color: var(--neutral-medium); /* Medium text */
-  font-size: 0.95rem;
+  /* CHANGE: Use a lighter color for better visibility */
+  color: var(--neutral-lightest);
+  font-size: 0.95rem; /* Slightly increase size */
 }
 
 .auth-switch .link {
-  color: var(--accent-color); /* Gold link */
+  color: var(--accent-color); /* Keep link color as Gold */
+  font-weight: 600;
   cursor: pointer;
-  font-weight: 500;
-  position: relative;
-  padding: 0 2px;
+  text-decoration: none;
+  transition: color 0.3s, text-shadow 0.3s;
 }
 
-.auth-switch .link:after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background-color: var(--accent-color);
-  transition: width 0.3s;
-}
-
-.auth-switch .link:hover:after {
-  width: 100%;
+.auth-switch .link:hover {
+  color: #fff; /* Make link white on hover */
+  text-shadow: 0 0 8px var(--accent-color); /* Add glow effect */
 }
 
 /* Error message */

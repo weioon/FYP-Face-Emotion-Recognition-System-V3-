@@ -1048,3 +1048,122 @@
   border-left: 2px solid var(--accent-color);
 }
 
+/* filepath: frontend/src/App.css */
+/* ... existing styles ... */
+
+/* Styling for Uploaded Image Analysis Results */
+.uploaded-image-container {
+  position: relative;
+  margin-top: 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+  border-radius: var(--border-radius-lg); /* Match card radius */
+  overflow: hidden; /* Keep image within bounds */
+  box-shadow: var(--shadow-md);
+  background-color: rgba(0, 0, 0, 0.2); /* Slightly dark background */
+}
+
+.uploaded-image-container img {
+  display: block; /* Remove extra space below image */
+  max-width: 100%;
+  max-height: 500px; /* Limit max height */
+  margin: 0 auto; /* Center image if container is wider */
+  /* Keep potential radius if needed, but container handles overflow */
+  /* border-radius: var(--border-radius-lg); */
+}
+
+.image-emotion-box {
+  position: absolute;
+  border: 3px solid var(--accent-color); /* Gold border */
+  box-sizing: border-box;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); /* Gold glow */
+  border-radius: 4px; /* Slightly rounded corners */
+}
+
+.image-emotion-label {
+  position: absolute;
+  top: -28px; /* Position above the box */
+  left: -3px; /* Align with border */
+  background: var(--darker-purple); /* Darker purple background */
+  color: var(--neutral-lightest); /* White text */
+  padding: 5px 10px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px; /* Slightly smaller */
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Header for the image results section */
+.image-results-header {
+  color: var(--neutral-lightest);
+  margin-top: 24px;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.image-results-header i {
+  color: var(--accent-color);
+}
+
+.image-analysis-details {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--darker-purple); /* Match card background */
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.image-analysis-details h4 { /* Header for this section */
+  color: var(--neutral-lightest);
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  font-weight: 600;
+}
+
+.face-result-item {
+  background-color: rgba(255, 255, 255, 0.07); /* Slightly lighter than card bg */
+  padding: 15px;
+  border-radius: var(--border-radius-md);
+  margin-bottom: 15px;
+  border-left: 3px solid var(--accent-color); /* Gold accent */
+  color: var(--neutral-lightest); /* Ensure text is light */
+  line-height: 1.6; /* Match other text */
+}
+/* Remove margin from last item */
+.face-result-item:last-child {
+  margin-bottom: 0;
+}
+
+.face-result-item p {
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+
+.face-result-item strong {
+  font-weight: 600;
+  color: var(--accent-color); /* Gold for emphasis */
+}
+
+.face-result-item ul {
+  list-style: none;
+  padding-left: 10px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+
+.face-result-item li {
+  margin-bottom: 3px;
+  opacity: 0.9;
+  color: var(--neutral-lightest); /* Ensure list item text is light */
+}
