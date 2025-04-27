@@ -79,6 +79,23 @@ const RecordingHistory = () => {
     }
   };
 
+  // Helper function to get dominant emotion from multi-face data structure
+  const getDominantEmotion = (analysisData) => {
+    // If it's the new multi-face format
+    if (analysisData.faces && analysisData.faces.length > 0) {
+      // Get the first face's dominant emotion
+      return analysisData.faces[0].dominant_emotion || 'Neutral';
+    }
+    
+    // Fall back to old format or default
+    if (analysisData.significant_emotions && analysisData.significant_emotions.length > 0) {
+      return analysisData.significant_emotions[0]?.emotion || 'Neutral';
+    }
+    
+    // If no data available
+    return analysisData.dominant_emotion || 'No data';
+  };
+
   // Pagination controls
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
@@ -138,10 +155,7 @@ const RecordingHistory = () => {
                           'N/A'}
                       </td>
                       <td>
-                        {recording.analysis_data.significant_emotions && 
-                         recording.analysis_data.significant_emotions.length > 0 ? 
-                          recording.analysis_data.significant_emotions[0]?.emotion || 'Neutral' : 
-                          'No data'}
+                        {getDominantEmotion(recording.analysis_data)}
                       </td>
                       <td>
                         <div className="action-buttons">

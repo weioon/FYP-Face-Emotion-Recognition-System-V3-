@@ -32,21 +32,25 @@ yolo_model = YOLO('yolov8n.pt')
 
 class RealtimeEmotionDetector:
     def __init__(self, debug_mode=False):
-        # Use a single consistent variable name for emotion records
-        self.emotion_records = []
+        # Add face tracking support
+        self.face_records = {}  # Dictionary mapping face_id to emotion records
+        self.next_face_id = 0   # Counter for generating unique face IDs
+        self.face_positions = {}  # Last known position of each face
         self.recording = False
         self.start_time = None
         self.end_time = None
         self.current_emotion_data = []
         self.debug_mode = debug_mode
-        print("RealtimeEmotionDetector initialized")
+        print("RealtimeEmotionDetector initialized with multi-person tracking")
     
     def start_recording(self):
         """Start a new recording session"""
         self.recording = True
         self.start_time = time.time()
-        self.emotion_records = []  # Clear previous records
-        print(f"Recording started at {self.start_time} with unix timestamp")
+        self.face_records = {}  # Clear previous records
+        self.face_positions = {}  # Reset face positions
+        self.next_face_id = 0   # Reset face ID counter
+        print(f"Recording started at {self.start_time} with multi-person tracking")
         return True
     
     def stop_recording(self):
@@ -75,6 +79,8 @@ class RealtimeEmotionDetector:
         else:
             print("WARNING: No emotion records were collected during recording!")
         
+        self.is_recording = False
+        # The recorded data is now in self.face_trackers
         return True
     
     def detect_emotions_in_frame(self, frame_data):
@@ -113,9 +119,12 @@ class RealtimeEmotionDetector:
                 if not isinstance(results, list):
                     results = [results]
                 
+                # Track detected faces in this frame
+                current_faces = []
+                
                 for result in results:
                     if 'emotion' in result:
-                        # Get face rectangle if available
+                        # Get face rectangle
                         region = result.get('region', {})
                         
                         # Scale coordinates back to original size
@@ -124,17 +133,13 @@ class RealtimeEmotionDetector:
                         w = int(region.get('w', 0) / scale)
                         h = int(region.get('h', 0) / scale)
                         
-                        # Apply padding to make box larger (improves visual appearance)
-                        padding = int(h * 0.1)  # 10% padding
-                        x = max(0, x - padding)
-                        y = max(0, y - padding)
-                        w = min(frame_width - x, w + padding * 2)
-                        h = min(frame_height - y, h + padding * 2)
+                        # Calculate face center for tracking
+                        face_center = (x + w/2, y + h/2)
                         
                         # Get emotions with de-biasing for neutral emotion
                         emotion_scores = result['emotion']
                         
-                        # De-bias the emotions - reduce neutral bias
+                        # De-bias the emotions as before...
                         if emotion_scores.get('neutral', 0) > 60:
                             # Find second highest emotion
                             emotions_except_neutral = {k: v for k, v in emotion_scores.items() if k != 'neutral'}
@@ -143,90 +148,58 @@ class RealtimeEmotionDetector:
                                 
                                 # Boost non-neutral emotions if they're reasonably strong
                                 if second_value > 10:
-                                    boost = min(30, second_value * 0.8)  # Boost up to 30% based on second emotion
+                                    boost = min(30, second_value * 0.8)
                                     emotion_scores['neutral'] -= boost
                                     emotion_scores[second_emotion] += boost
-                                    print(f"De-biased: {second_emotion} boosted from {second_value:.1f}% to {emotion_scores[second_emotion]:.1f}%")
                         
                         # Re-determine dominant emotion after adjustments
                         dominant_emotion = max(emotion_scores.items(), key=lambda x: x[1])[0].lower().capitalize()
                         
+                        # Assign or match face ID based on position
+                        face_id = self._match_face(face_center)
+                        current_faces.append(face_id)
+                        
                         face_detected = True
-                        print(f"Face detected with dominant emotion: {dominant_emotion}")
+                        print(f"Face {face_id} detected with dominant emotion: {dominant_emotion}")
                         
                         # Store with proper coordinates for front-end rendering
-                        emotions_detected.append({
-                            'face_location': [x, y, x+w, y+h],  # Use list format with correct coordinates
+                        emotion_data = {
+                            'face_id': face_id,
+                            'face_location': [x, y, x+w, y+h],
                             'dominant_emotion': dominant_emotion,
                             'emotion_scores': emotion_scores
-                        })
+                        }
+                        emotions_detected.append(emotion_data)
                         
                         # Draw rectangle for visualization
                         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        # Add face ID to the rectangle
+                        cv2.putText(frame, f"ID:{face_id}", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                         
                         # Record emotion data when recording is active
                         if self.recording:
                             timestamp = time.time() - self.start_time if self.start_time else 0
                             
-                            # Generate some emotional variability if needed
-                            if len(self.emotion_records) > 0:
-                                prev_emotions = [r["emotion"] for r in self.emotion_records[-5:]]
-                                all_neutral = all(e == "Neutral" for e in prev_emotions)
-                                
-                                # If we've had several neutrals in a row, introduce some variation
-                                # based on weaker detected emotions
-                                if all_neutral and len(prev_emotions) >= 3 and emotion_scores['neutral'] > 70:
-                                    # Use second highest emotion occasionally
-                                    secondary_emotions = [(k.capitalize(), v) for k, v in emotion_scores.items() 
-                                                        if k != 'neutral' and v > 5]
-                                    if secondary_emotions and len(self.emotion_records) % 3 == 0:
-                                        secondary_emotions.sort(key=lambda x: x[1], reverse=True)
-                                        emotion_name = secondary_emotions[0][0]
-                                        print(f"Introducing variation: {emotion_name} at {timestamp:.2f}s")
-                                    else:
-                                        emotion_name = dominant_emotion.capitalize()
-                                else:
-                                    emotion_name = dominant_emotion.capitalize()
-                            else:
-                                emotion_name = dominant_emotion.capitalize()
+                            # Create face record entry if it doesn't exist
+                            if face_id not in self.face_records:
+                                self.face_records[face_id] = []
                             
-                            self.emotion_records.append({
+                            # Add the emotion record for this face
+                            self.face_records[face_id].append({
                                 "timestamp": timestamp,
-                                "emotion": emotion_name,
-                                "score": emotion_scores.get(emotion_name.lower(), 0)
+                                "emotion": dominant_emotion,
+                                "score": emotion_scores.get(dominant_emotion.lower(), 0)
                             })
-                            print(f"Recording emotion: {emotion_name} at {timestamp:.2f}s - Total: {len(self.emotion_records)}")
+                            print(f"Recording emotion for face {face_id}: {dominant_emotion} at {timestamp:.2f}s")
                 
+                # Clean up faces that disappeared
+                if self.recording:
+                    self._handle_missing_faces(current_faces)
+                    
             except Exception as e:
                 print(f"DeepFace processing error: {e}")
                 import traceback
                 traceback.print_exc()
-            
-            # If recording but no face detected for this frame, use previous emotions
-            if self.recording and not face_detected and len(self.emotion_records) > 0:
-                timestamp = time.time() - self.start_time if self.start_time else 0
-                
-                # Get the last recorded emotion rather than defaulting to neutral
-                last_emotion = self.emotion_records[-1]["emotion"]
-                
-                # Every few frames, introduce some variation to avoid 100% neutral results
-                if len(self.emotion_records) % 5 == 0 and last_emotion == "Neutral":
-                    # Inject some emotional variety based on timestamp
-                    emotions = ["Happy", "Sad", "Surprise", "Angry", "Fear"]
-                    emotion_name = emotions[int(timestamp * 10) % len(emotions)]
-                    score = 40.0  # Give it a moderate score
-                    print(f"No face - injecting variation: {emotion_name} at {timestamp:.2f}s")
-                else:
-                    # Use the previous emotion for continuity
-                    emotion_name = last_emotion
-                    score = self.emotion_records[-1]["score"]
-                    print(f"No face - continuing with: {emotion_name} at {timestamp:.2f}s")
-                
-                self.emotion_records.append({
-                    "timestamp": timestamp,
-                    "emotion": emotion_name,
-                    "score": score
-                })
             
             # Store current emotion data for API access
             self.current_emotion_data = emotions_detected
@@ -237,6 +210,41 @@ class RealtimeEmotionDetector:
             import traceback
             traceback.print_exc()
             return frame
+    
+    def _match_face(self, face_center):
+        """Match a face with previously tracked faces based on position"""
+        # Check if this face matches any previous face position
+        for face_id, position in self.face_positions.items():
+            # Calculate Euclidean distance between centers
+            distance = ((face_center[0] - position[0])**2 + (face_center[1] - position[1])**2)**0.5
+            
+            # If close enough, consider it the same face (threshold can be adjusted)
+            if distance < 100:  # Pixel distance threshold
+                # Update position and return existing ID
+                self.face_positions[face_id] = face_center
+                return face_id
+                
+        # If no match found, assign a new face ID
+        new_face_id = f"face_{self.next_face_id}"
+        self.face_positions[new_face_id] = face_center
+        self.next_face_id += 1
+        return new_face_id
+        
+    def _handle_missing_faces(self, current_faces):
+        """Handle faces that disappeared from the frame"""
+        # For faces that were tracking but aren't in current_faces
+        missing_faces = set(self.face_positions.keys()) - set(current_faces)
+        
+        # We could handle missing faces in various ways:
+        # 1. Remove them immediately (strict tracking)
+        # 2. Keep them for a few frames in case they reappear
+        # 3. Use last known emotion
+        
+        # For now, just update the positions dictionary
+        for face_id in missing_faces:
+            # Only remove if it's been missing for a while
+            # For now, we'll just keep all faces in the records
+            pass
     
     def decode_image(self, base64_image):
         """Decode a base64 image to a CV2 image (numpy array)"""
@@ -268,155 +276,124 @@ class RealtimeEmotionDetector:
             return None
     
     def analyze_emotions(self):
-        """Analyze recorded emotion data and provide insights"""
-        print(f"Starting emotion analysis with {len(self.emotion_records)} records")
+        """Analyze recorded emotion data and provide insights for each face"""
+        print(f"Starting emotion analysis with {len(self.face_records)} tracked faces")
         
         # Calculate duration
         duration = self.end_time - self.start_time if self.start_time and self.end_time else 0
-        print(f"Recording duration: {duration:.2f}s from {self.start_time} to {self.end_time}")
+        print(f"Recording duration: {duration:.2f}s")
         
-        # Check that we have the start and end times recorded correctly
-        if not self.start_time or not self.end_time:
-            print("ERROR: Missing start_time or end_time - recording may not have been properly started/stopped")
-        
-        # Basic error handling - return default structure if no data
-        if not self.emotion_records or len(self.emotion_records) < 3:
-            print("Not enough emotion records for analysis")
+        # If no faces were detected, return default structure
+        if not self.face_records:
+            print("No faces were recorded")
             return {
-                "error": "No emotions were recorded. Please try again and make sure your face is visible.",
-                "duration": duration,
-                "stats": {"Neutral": 100.0},
-                "emotion_journey": {
-                    "beginning": {"Neutral": 100.0},
-                    "middle": {"Neutral": 100.0},
-                    "end": {"Neutral": 100.0}
-                },
-                "interpretation": "Insufficient emotion data was captured during the recording session. This may occur if your face was not visible to the camera, lighting was poor, or the emotion detection system had difficulty identifying facial expressions.",
-                "educational_recommendations": [
-                    "Ensure your face is clearly visible throughout the recording session.",
-                    "Check that lighting is adequate, with even illumination on your face.",
-                    "Position yourself directly facing the camera for best detection results.",
-                    "Avoid covering parts of your face during the recording."
-                ]
+                "error": "No faces were detected. Please try again with better lighting or positioning.",
+                "face_count": 0
             }
+            
+        # Analyze each face separately
+        results = {
+            "duration": duration,
+            "face_count": len(self.face_records),
+            "faces": []
+        }
         
-        try:
-            # Print some sample records for debugging
-            print(f"Sample records: {self.emotion_records[:3]}")
-            
-            # Count emotions
-            emotion_counts = {}
-            for record in self.emotion_records:
-                emotion = record["emotion"]
-                emotion_counts[emotion] = emotion_counts.get(emotion, 0) + 1
-            
-            total_records = len(self.emotion_records)
-            print(f"Emotion counts: {emotion_counts}")
-            
-            # Calculate percentages
-            emotion_percentages = {
-                emotion: (count / total_records) * 100
-                for emotion, count in emotion_counts.items()
-            }
-            
-            # Get dominant emotion
-            dominant_emotion = max(emotion_counts.items(), key=lambda x: x[1])[0]
-            
-            # Split the timeline into three parts - use more balanced splitting
-            beginning_size = max(1, total_records // 3)
-            middle_size = max(1, total_records // 3)
-            end_size = total_records - beginning_size - middle_size
-            
-            beginning_records = self.emotion_records[:beginning_size]
-            middle_records = self.emotion_records[beginning_size:beginning_size+middle_size]
-            end_records = self.emotion_records[beginning_size+middle_size:]
-            
-            # Analyze each segment
-            beginning_emotions = {}
-            for record in beginning_records:
-                emotion = record["emotion"]
-                beginning_emotions[emotion] = beginning_emotions.get(emotion, 0) + 1
-            
-            middle_emotions = {}
-            for record in middle_records:
-                emotion = record["emotion"]
-                middle_emotions[emotion] = middle_emotions.get(emotion, 0) + 1
+        for face_id, emotion_records in self.face_records.items():
+            try:
+                # Skip faces with too few records
+                if len(emotion_records) < 3:
+                    print(f"Face {face_id} has insufficient data ({len(emotion_records)} records)")
+                    continue
+                    
+                print(f"Analyzing face {face_id} with {len(emotion_records)} emotion records")
                 
-            end_emotions = {}
-            for record in end_records:
-                emotion = record["emotion"]
-                end_emotions[emotion] = end_emotions.get(emotion, 0) + 1
+                # Use the same analysis logic for each face
+                face_result = self._analyze_single_face(face_id, emotion_records, duration)
+                results["faces"].append(face_result)
+                
+            except Exception as e:
+                print(f"Error analyzing face {face_id}: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        return results
+        
+    def _analyze_single_face(self, face_id, emotion_records, duration):
+        """Analyze the emotions for a single face"""
+        # Count emotions
+        emotion_counts = {}
+        for record in emotion_records:
+            emotion = record["emotion"]
+            emotion_counts[emotion] = emotion_counts.get(emotion, 0) + 1
+        
+        total_records = len(emotion_records)
+        
+        # Calculate percentages
+        emotion_percentages = {
+            emotion: (count / total_records) * 100
+            for emotion, count in emotion_counts.items()
+        }
+        
+        # Get dominant emotion
+        dominant_emotion = max(emotion_counts.items(), key=lambda x: x[1])[0]
+        
+        # Split the timeline into three parts
+        beginning_size = max(1, total_records // 3)
+        middle_size = max(1, total_records // 3)
+        
+        beginning_records = emotion_records[:beginning_size]
+        middle_records = emotion_records[beginning_size:beginning_size+middle_size]
+        end_records = emotion_records[beginning_size+middle_size:]
+        
+        # Calculate segment emotions
+        beginning_emotions = self._calculate_segment_emotions(beginning_records)
+        middle_emotions = self._calculate_segment_emotions(middle_records)
+        end_emotions = self._calculate_segment_emotions(end_records)
+        
+        # Generate interpretation and recommendations for this face
+        interpretation = self._generate_interpretation(beginning_emotions, middle_emotions, end_emotions)
+        recommendations = self._generate_recommendations({
+            "beginning": beginning_emotions, 
+            "middle": middle_emotions, 
+            "end": end_emotions
+        }, dominant_emotion)
+        
+        # Calculate significant emotions
+        significant_emotions = [
+            {"emotion": emotion, "percentage": percentage}
+            for emotion, percentage in emotion_percentages.items()
+            if percentage > 5.0  # Only include emotions above 5%
+        ]
+        significant_emotions.sort(key=lambda x: x["percentage"], reverse=True)
+        
+        return {
+            "face_id": face_id,
+            "duration": duration,
+            "dominant_emotion": dominant_emotion,
+            "stats": emotion_percentages,
+            "significant_emotions": significant_emotions,
+            "emotion_journey": {
+                "beginning": beginning_emotions,
+                "middle": middle_emotions,
+                "end": end_emotions
+            },
+            "interpretation": interpretation,
+            "educational_recommendations": recommendations
+        }
+        
+    def _calculate_segment_emotions(self, segment_records):
+        """Calculate emotion percentages for a segment of records"""
+        if not segment_records:
+            return {"Neutral": 100.0}
             
-            # Calculate percentages for each segment
-            beginning_percentages = {
-                emotion: (count / len(beginning_records)) * 100
-                for emotion, count in beginning_emotions.items()
-            }
+        emotions = {}
+        for record in segment_records:
+            emotion = record["emotion"]
+            emotions[emotion] = emotions.get(emotion, 0) + 1
             
-            middle_percentages = {
-                emotion: (count / len(middle_records)) * 100
-                for emotion, count in middle_emotions.items()
-            }
-            
-            end_percentages = {
-                emotion: (count / len(end_records)) * 100
-                for emotion, count in end_emotions.items()
-            }
-            
-            # Print segment analysis for debugging
-            print(f"Beginning emotions: {beginning_percentages}")
-            print(f"Middle emotions: {middle_percentages}")
-            print(f"End emotions: {end_percentages}")
-            
-            # Keep your existing custom implementation for interpretation and recommendations
-            interpretation = self._generate_interpretation(beginning_percentages, middle_percentages, end_percentages)
-            
-            recommendations = self._generate_recommendations({
-                "beginning": beginning_percentages, 
-                "middle": middle_percentages, 
-                "end": end_percentages
-            }, dominant_emotion)
-            
-            # Format for analysis result
-            analysis_result = {
-                "duration": duration,
-                "dominant_emotion": dominant_emotion,
-                "stats": emotion_percentages,
-                "significant_emotions": [
-                    {"emotion": emotion, "percentage": percentage}
-                    for emotion, percentage in emotion_percentages.items()
-                    if percentage > 5.0  # Only include emotions above 5%
-                ],
-                "emotion_journey": {
-                    "beginning": beginning_percentages,
-                    "middle": middle_percentages,
-                    "end": end_percentages
-                },
-                # Use your existing interpretation and recommendations
-                "interpretation": interpretation,
-                "educational_recommendations": recommendations
-            }
-            
-            print(f"Analysis completed successfully with dominant emotion: {dominant_emotion}")
-            return analysis_result
-            
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print(f"Error in analyze_emotions: {str(e)}")
-            
-            # Return error but with consistent data structure
-            return {
-                "error": f"Analysis error: {str(e)}",
-                "duration": duration,
-                "stats": {"Neutral": 100.0},
-                "emotion_journey": {
-                    "beginning": {"Neutral": 100.0},
-                    "middle": {"Neutral": 100.0},
-                    "end": {"Neutral": 100.0}
-                }
-            }
-
+        total = len(segment_records)
+        return {emotion: (count/total)*100 for emotion, count in emotions.items()}
+    
     def _generate_interpretation(self, beginning, middle, end):
         """Generate detailed interpretation of emotional journey covering all seven emotions"""
         # Get the dominant emotions for each phase

@@ -4,6 +4,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import Card from './Card';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -16,6 +17,7 @@ const RecordingDetail = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Existing effect code to fetch recording details
     const fetchRecording = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -47,19 +49,40 @@ const RecordingDetail = () => {
   if (error) return <div className="error-message">{error}</div>;
   if (!recording) return <div className="not-found">Recording not found</div>;
 
-  // Check which property contains the summary data - use a more comprehensive approach
+  // Helper function to determine if this is a multi-face recording
+  const isMultiFaceRecording = () => {
+    return recording.analysis_data.faces && recording.analysis_data.faces.length > 0;
+  };
+
+  // Updated getSummaryData function
   const getSummaryData = () => {
-    // Check if there's an explicit summary field
+    if (isMultiFaceRecording()) {
+      const faceCount = recording.analysis_data.faces.length;
+      let summary = `This recording captured ${faceCount} ${faceCount === 1 ? 'person' : 'people'}.`;
+      
+      // Add summary for each face
+      recording.analysis_data.faces.forEach((face, index) => {
+        summary += ` Person ${index+1} showed primarily ${face.dominant_emotion}`;
+        
+        if (face.significant_emotions && face.significant_emotions.length > 1) {
+          summary += ` (${face.significant_emotions[0].percentage.toFixed(1)}%), followed by ${face.significant_emotions[1].emotion} (${face.significant_emotions[1].percentage.toFixed(1)}%).`;
+        } else {
+          summary += '.';
+        }
+      });
+      
+      return summary;
+    }
+    
+    // Fall back to the original logic for old recordings
     if (recording.analysis_data.summary) {
       return recording.analysis_data.summary;
     }
     
-    // Check if there's a dominant emotion field
     if (recording.analysis_data.dominant_emotion) {
       return `The dominant emotion detected was ${recording.analysis_data.dominant_emotion}`;
     }
     
-    // Check if we have significant emotions data
     if (recording.analysis_data.significant_emotions && 
         recording.analysis_data.significant_emotions.length > 0) {
       
@@ -70,220 +93,287 @@ const RecordingDetail = () => {
         summary += `, followed by ${emotions[1].emotion} (${emotions[1].percentage.toFixed(1)}%)`;
       }
       
-      // Add information about emotional stability if available
       if (recording.analysis_data.emotion_stability !== undefined) {
         const stability = recording.analysis_data.emotion_stability > 0.7 ? 'stable' : 
-                          (recording.analysis_data.emotion_stability > 0.4 ? 'moderately changing' : 'highly variable');
+                        (recording.analysis_data.emotion_stability > 0.4 ? 'moderately changing' : 'highly variable');
         summary += `. The emotional pattern was ${stability} throughout the session.`;
       }
       
       return summary;
     }
     
-    // Fallback if no data is available
     return "Summary analysis could not be generated due to insufficient emotion data.";
   };
 
-  // Replace the simple summaryData variable with this function call
   const summaryData = getSummaryData();
 
-  // Prepare chart data for emotions
-  const chartData = {
-    labels: recording.analysis_data.significant_emotions?.map(item => item.emotion) || ['No Data'],
-    datasets: [
-      {
-        label: 'Emotion Percentage',
-        data: recording.analysis_data.significant_emotions?.map(item => item.percentage) || [100],
-        backgroundColor: [
-          'rgba(22, 255, 0, 0.8)',  // Green - matches your accent
-          'rgba(0, 179, 255, 0.8)', // Blue
-          'rgba(255, 107, 107, 0.8)', // Coral red
-          'rgba(156, 114, 255, 0.8)', // Purple
-          'rgba(0, 207, 187, 0.8)', // Teal
-          'rgba(155, 164, 180, 0.8)', // Gray
-          'rgba(255, 149, 81, 0.8)', // Orange
-        ],
-        borderColor: [
-          'rgba(22, 255, 0, 1)',
-          'rgba(0, 179, 255, 1)',
-          'rgba(255, 107, 107, 1)',
-          'rgba(156, 114, 255, 1)',
-          'rgba(0, 207, 187, 1)',
-          'rgba(155, 164, 180, 1)',
-          'rgba(255, 149, 81, 1)',
-        ],
-        borderWidth: 2,
-      },
-    ],
-  };
-
-  // Add chart options for better visibility
+  // --- Use the EXACT SAME chart options as EmotionDashboard.js ---
   const chartOptions = {
+    responsive: true, // Let the chart resize within its container
     plugins: {
       legend: {
+        position: 'bottom',
         labels: {
-          color: '#FFFFFF',
-          font: {
-            size: 14
-          }
+          // Ensure color matches the dark card background
+          color: 'var(--neutral-lightest)', // Or '#FFFFFF'
         }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(10, 16, 34, 0.8)',
-        titleColor: '#FFFFFF',
-        bodyColor: '#FFFFFF',
-        bodyFont: {
-          size: 14
-        },
-        padding: 10,
-        boxPadding: 5,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1
       }
+      // No complex titles or specific axis settings needed if
+      // EmotionDashboard doesn't have them. Keep it simple.
     },
     scales: {
       y: {
+        beginAtZero: true,
+        max: 100,
         ticks: {
-          color: '#FFFFFF',
-          font: {
-            size: 12
-          }
+          color: 'var(--neutral-lightest)', // Or '#FFFFFF'
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: 'rgba(255, 255, 255, 0.1)' // Light grid lines for dark bg
         }
       },
       x: {
         ticks: {
-          color: '#FFFFFF',
-          font: {
-            size: 12
-          }
+          color: 'var(--neutral-lightest)', // Or '#FFFFFF'
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: 'rgba(255, 255, 255, 0.1)' // Light grid lines for dark bg
         }
       }
     }
+    // Ensure maintainAspectRatio is NOT set to false, or remove it entirely
+    // maintainAspectRatio: true, // (Default) or remove this line
   };
+  // --- End of chart options ---
+
 
   return (
-    <div className="recording-detail">
-      {/* Recording Header Section */}
-      <div className="recording-header">
-        <h2>Recording Details</h2>
+    <div className="emotion-dashboard space-y-6">
+      {/* Recording metadata */}
+      <Card title="Recording Details" variant="primary">
         <div className="recording-meta">
-          <p>Date: {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</p>
-          <p>Time: {moment.utc(recording.timestamp).local().format('h:mm:ss A')}</p>
-          <p>Duration: {recording.analysis_data.duration ? `${Math.round(recording.analysis_data.duration)} seconds` : 'N/A'}</p>
+          <p><i className="far fa-calendar-alt"></i> Date: {moment.utc(recording.timestamp).local().format('DD-MM-YYYY')}</p>
+          <p><i className="far fa-clock"></i> Time: {moment.utc(recording.timestamp).local().format('h:mm:ss A')}</p>
+          <p><i className="fas fa-stopwatch"></i> Duration: {recording.analysis_data.duration ? `${Math.round(recording.analysis_data.duration)} seconds` : 'N/A'}</p>
+          {isMultiFaceRecording() && (
+            <p><i className="fas fa-users"></i> People Detected: {recording.analysis_data.face_count}</p>
+          )}
         </div>
-      </div>
+      </Card>
 
-      {/* Chart Section */}
-      <div className="charts-container">
-        <h3>
-          <i className="fas fa-chart-pie"></i>
-          Emotions Detected
-        </h3>
-        <Bar data={chartData} options={chartOptions} />
-      </div>
-
-      {/* Analysis Summary Section */}
-      <div className="summary-section">
-        <h3>
-          <i className="fas fa-chart-line"></i>
-          Analysis Summary
-        </h3>
-        <div className="summary-text">
-          {summaryData}
+      {/* Summary section */}
+      <Card title="Analysis Summary" variant="primary">
+        <div className="py-4">
+          <p className="text-neutral-lightest">{summaryData}</p>
         </div>
-      </div>
-      
-      {/* Interpretation Section */}
-      <div className="interpretation-section">
-        <h3>
-          <i className="fas fa-brain"></i>
-          Interpretation
-        </h3>
-        <div className="interpretation">
-          {Array.isArray(recording.analysis_data.interpretation) ? 
-            recording.analysis_data.interpretation.map((point, index) => {
-              if (point.startsWith("•")) {
-                // This is a bullet point - render as indented paragraph
-                return <p key={index} className="ml-6 my-1">{point}</p>;
-              } else {
-                // This is a section header - render as bold header with spacing
-                return <h4 key={index} className="mt-4 mb-2 font-bold text-lg">{point}</h4>;
-              }
-            })
-            :
-            recording.analysis_data.interpretation || "The emotional state was relatively consistent throughout the session."
-          }
-        </div>
-      </div>
+      </Card>
 
-      {/* Emotional Journey Section */}
-      <div className="journey-section">
-        <h3>
-          <i className="fas fa-chart-area"></i>
-          Emotional Journey
-        </h3>
-        <div className="journey-stages">
-          <div className="stage">
-            <h4>Beginning</h4>
-            <ul>
-              {Object.entries(recording.analysis_data.emotion_journey?.beginning || {}).map(([emotion, value]) => (
-                <li key={emotion}>{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
-              ))}
-            </ul>
-          </div>
-          <div className="stage">
-            <h4>Middle</h4>
-            <ul>
-              {Object.entries(recording.analysis_data.emotion_journey?.middle || {}).map(([emotion, value]) => (
-                <li key={emotion}>{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
-              ))}
-            </ul>
-          </div>
-          <div className="stage">
-            <h4>End</h4>
-            <ul>
-              {Object.entries(recording.analysis_data.emotion_journey?.end || {}).map(([emotion, value]) => (
-                <li key={emotion}>{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Recommendations Section */}
-      <div className="recommendations-section">
-        <h3>
-          <i className="fas fa-lightbulb"></i>
-          Educational Recommendations
-        </h3>
-        <div className="recommendations">
-          {Array.isArray(recording.analysis_data.educational_recommendations) ? 
-            recording.analysis_data.educational_recommendations.map((rec, index) => {
-              if (rec.startsWith("•")) {
-                // This is a bullet point - render as indented item
-                return <p key={index} className="ml-6 my-1">{rec}</p>;
-              } else {
-                // This is a section header - render as bold header with spacing
-                return <h4 key={index} className="mt-4 mb-2 font-bold text-lg">{rec}</h4>;
-              }
-            })
-            :
-            <div className="recommendation-item">
-              Based on the emotional data, maintaining the current teaching approach appears effective.
+      {/* Multi-face section */}
+      {isMultiFaceRecording() ? (
+        <>
+          {recording.analysis_data.faces.map((faceData, index) => {
+            // Prepare chart data for this face
+            const chartData = {
+              labels: Object.keys(faceData.stats || {}),
+              datasets: [
+                {
+                  label: 'Emotion Distribution (%)',
+                  data: Object.values(faceData.stats || {}),
+                  backgroundColor: [
+                    'rgba(241, 196, 15, 0.7)',   // Happy - Yellow
+                    'rgba(52, 152, 219, 0.7)',   // Sad - Blue
+                    'rgba(231, 76, 60, 0.7)',    // Angry - Red
+                    'rgba(155, 89, 182, 0.7)',   // Surprise - Purple
+                    'rgba(26, 188, 156, 0.7)',   // Fear - Teal
+                    'rgba(22, 160, 133, 0.7)',   // Disgust - Dark Teal
+                    'rgba(149, 165, 166, 0.7)',  // Neutral - Gray
+                  ]
+                }
+              ]
+            };
+            
+            return (
+              <Card key={index} title={`Person ${index+1} (ID:${faceData.face_id})`} variant="primary">
+                <div className="analysis-section">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold mb-2">Session Overview</h3>
+                      <p className="text-neutral-lightest">
+                        <span className="font-medium">Duration:</span> {faceData.duration?.toFixed(2)} seconds
+                      </p>
+                      <p className="text-neutral-lightest">
+                        <span className="font-medium">Dominant Emotion:</span> {faceData.dominant_emotion}
+                      </p>
+                    </div>
+                    
+                    {/* --- REMOVE the inline style attribute from this div --- */}
+                    <div className="chart-container">
+                      <Bar data={chartData} options={chartOptions} />
+                    </div>
+                  </div>
+                  
+                  {/* Emotional journey section */}
+                  {faceData.emotion_journey && (
+                    <div className="mt-6">
+                      <h3 className="font-semibold mb-2">Emotional Journey</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
+                          <h4 className="text-sm font-medium text-neutral-lightest">Beginning</h4>
+                          <ul className="text-sm">
+                            {Object.entries(faceData.emotion_journey.beginning).map(([emotion, value]) => (
+                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
+                          <h4 className="text-sm font-medium text-neutral-lightest">Middle</h4>
+                          <ul className="text-sm">
+                            {Object.entries(faceData.emotion_journey.middle).map(([emotion, value]) => (
+                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
+                          <h4 className="text-sm font-medium text-neutral-lightest">End</h4>
+                          <ul className="text-sm">
+                            {Object.entries(faceData.emotion_journey.end).map(([emotion, value]) => (
+                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Interpretation and recommendations */}
+                  {faceData.interpretation && (
+                    <div className="mt-6">
+                      <h3 className="font-semibold mb-2">Analysis</h3>
+                      <p className="text-neutral-lightest">{faceData.interpretation}</p>
+                    </div>
+                  )}
+                  
+                  {faceData.educational_recommendations && (
+                    <div className="mt-4">
+                      <h3 className="font-semibold mb-2">Recommendations</h3>
+                      <ul className="list-disc pl-5">
+                        {faceData.educational_recommendations.map((rec, i) => (
+                          <li key={i} className="text-neutral-lightest">{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </>
+      ) : (
+        // Legacy single-face display
+        <Card title="Emotion Analysis" variant="primary">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold mb-2">Session Overview</h3>
+              <p className="text-neutral-lightest">
+                <span className="font-medium">Duration:</span> {recording.analysis_data.duration?.toFixed(2)} seconds
+              </p>
+              <p className="text-neutral-lightest">
+                <span className="font-medium">Dominant Emotion:</span> {recording.analysis_data.dominant_emotion || 
+                  (recording.analysis_data.significant_emotions && recording.analysis_data.significant_emotions[0]?.emotion)}
+              </p>
             </div>
-          }
-        </div>
-      </div>
+            
+            {/* --- REMOVE the inline style attribute from this div --- */}
+            <div className="chart-container">
+              <Bar
+                data={{
+                  labels: recording.analysis_data.significant_emotions?.map(item => item.emotion) || ['No Data'],
+                  datasets: [{
+                    label: 'Emotion Percentage',
+                    data: recording.analysis_data.significant_emotions?.map(item => item.percentage) || [100],
+                    backgroundColor: [
+                      'rgba(241, 196, 15, 0.7)',  // Yellow
+                      'rgba(52, 152, 219, 0.7)',  // Blue
+                      'rgba(231, 76, 60, 0.7)',   // Red
+                      'rgba(155, 89, 182, 0.7)',  // Purple
+                      'rgba(26, 188, 156, 0.7)',  // Teal
+                      'rgba(22, 160, 133, 0.7)',  // Dark teal
+                      'rgba(149, 165, 166, 0.7)', // Gray
+                    ]
+                  }]
+                }}
+                options={chartOptions} // Use the simplified options
+              />
+            </div>
+          </div>
 
-      <button onClick={() => navigate('/history')} className="back-btn">
-        <i className="fas fa-arrow-left"></i> Back to History
-      </button>
+          {recording.analysis_data.emotion_journey && (
+            <div className="mt-6">
+              <h3 className="font-semibold mb-2">Emotional Journey</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
+                  <h4 className="text-sm font-medium text-neutral-lightest">Beginning</h4>
+                  <ul className="text-sm">
+                    {Object.entries(recording.analysis_data.emotion_journey.beginning || {}).map(([emotion, value]) => (
+                      <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
+                  <h4 className="text-sm font-medium text-neutral-lightest">Middle</h4>
+                  <ul className="text-sm">
+                    {Object.entries(recording.analysis_data.emotion_journey.middle || {}).map(([emotion, value]) => (
+                      <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
+                  <h4 className="text-sm font-medium text-neutral-lightest">End</h4>
+                  <ul className="text-sm">
+                    {Object.entries(recording.analysis_data.emotion_journey.end || {}).map(([emotion, value]) => (
+                      <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {recording.analysis_data.interpretation && (
+            <div className="mt-6">
+              <h3 className="font-semibold mb-2">Analysis</h3>
+              <div className="p-4 bg-opacity-10 bg-white rounded">
+                {Array.isArray(recording.analysis_data.interpretation) ? 
+                  recording.analysis_data.interpretation.map((point, index) => (
+                    <p key={index} className="text-neutral-lightest mb-2">{point}</p>
+                  )) : 
+                  <p className="text-neutral-lightest">{recording.analysis_data.interpretation}</p>
+                }
+              </div>
+            </div>
+          )}
+          
+          {recording.analysis_data.educational_recommendations && (
+            <div className="mt-4">
+              <h3 className="font-semibold mb-2">Recommendations</h3>
+              <div className="p-4 bg-opacity-10 bg-white rounded">
+                {Array.isArray(recording.analysis_data.educational_recommendations) ? 
+                  recording.analysis_data.educational_recommendations.map((rec, index) => (
+                    <p key={index} className="text-neutral-lightest mb-2">{rec}</p>
+                  )) :
+                  <p className="text-neutral-lightest">Based on the emotional data, maintaining the current teaching approach appears effective.</p>
+                }
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      <div className="mt-6">
+        <button onClick={() => navigate('/history')} className="btn btn-primary">
+          <i className="fas fa-arrow-left"></i> Back to History
+        </button>
+      </div>
     </div>
   );
 };

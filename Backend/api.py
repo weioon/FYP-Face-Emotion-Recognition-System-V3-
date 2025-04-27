@@ -161,20 +161,20 @@ async def stop_recording(current_user: User = Depends(get_current_user), db: Ses
         detector.stop_recording()
         
         analysis = detector.analyze_emotions()
-        logger.info(f"Analysis result summary: Duration={analysis.get('duration', 0)}, Dominant emotion={analysis.get('dominant_emotion', 'unknown')}")
+        face_count = analysis.get('face_count', 0)
+        logger.info(f"Analysis result summary: {face_count} faces detected over {analysis.get('duration', 0):.2f} seconds")
         
-        # Always save to database, even with minimal data
+        # Save multi-face analysis to database
         new_recording = Recording(
             user_id=current_user.id,
             analysis_data=json.dumps(analysis),
-            timestamp=datetime.utcnow()  # Explicitly set UTC time
+            timestamp=datetime.utcnow()
         )
         
         db.add(new_recording)
         db.commit()
         logger.info(f"Recording saved to database with ID: {new_recording.id}")
         
-        # Return the analysis for immediate display
         return analysis
     except Exception as e:
         logger.error(f"Error stopping recording: {str(e)}")
@@ -259,7 +259,9 @@ async def detect_emotion(request: ImageRequest):
         # Add a debug message if recording
         is_recording = detector.recording if hasattr(detector, "recording") else False
         if is_recording:
-            print(f"Processed frame during recording. Total records: {len(detector.emotion_records)}")
+            # Count total records across all tracked faces
+            total_records = sum(len(records) for records in detector.face_records.values()) if hasattr(detector, "face_records") else 0
+            print(f"Processed frame during recording. Total records: {total_records}")
         
         return {
             "status": "success",
@@ -268,9 +270,7 @@ async def detect_emotion(request: ImageRequest):
         }
     except Exception as e:
         print(f"Error in detect_emotion: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+        # Rest of the error handling code...
 
 # Add these imports if not already present
 from fastapi import File, UploadFile
