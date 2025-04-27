@@ -50,7 +50,6 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
   // Handle multi-face results
   if (analysisResults.faces && analysisResults.faces.length > 0) {
     return (
-      // Assign the ref to the main container div for the results display
       <div ref={dashboardRef} className="emotion-dashboard space-y-6">
         <h2 className="text-xl font-bold mb-4">
           Analysis Results ({analysisResults.face_count} {analysisResults.face_count === 1 ? 'person' : 'people'} detected)
@@ -127,14 +126,17 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
                 {/* Left side: Overview and Chart */}
                 <div>
                   <div className="mb-4">
-                    <h3 className="font-semibold mb-2">Session Overview</h3>
-                    <p className="text-neutral-lightest">
+                    {/* Title: White */}
+                    <h3 className="font-semibold mb-2 text-white">Session Overview</h3>
+                    {/* Content: Black */}
+                    <p className="text-black">
                       <span className="font-medium">Duration:</span> {faceData.duration?.toFixed(2)} seconds
                     </p>
-                    <p className="text-neutral-lightest">
+                    <p className="text-black">
                       <span className="font-medium">Dominant Emotion:</span> {faceData.dominant_emotion}
                     </p>
                   </div>
+                  {/* Chart container remains unchanged */}
                   <div className="chart-container">
                     <Bar data={chartData} options={chartOptions} />
                   </div>
@@ -144,29 +146,36 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
                 <div>
                   {faceData.emotion_journey && (
                     <div className="mb-6">
-                      <h3 className="font-semibold mb-2">Emotional Journey</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Emotional Journey</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                          <h4 className="text-sm font-medium text-neutral-lightest">Beginning</h4>
+                          {/* Sub-title: White */}
+                          <h4 className="text-sm font-medium text-white">Beginning</h4>
                           <ul className="text-sm">
+                            {/* Content: Black */}
                             {Object.entries(faceData.emotion_journey.beginning).map(([emotion, value]) => (
-                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                              <li key={emotion} className="text-black">{emotion}: {value.toFixed(1)}%</li>
                             ))}
                           </ul>
                         </div>
                         <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                          <h4 className="text-sm font-medium text-neutral-lightest">Middle</h4>
+                          {/* Sub-title: White */}
+                          <h4 className="text-sm font-medium text-white">Middle</h4>
                           <ul className="text-sm">
+                            {/* Content: Black */}
                             {Object.entries(faceData.emotion_journey.middle).map(([emotion, value]) => (
-                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                              <li key={emotion} className="text-black">{emotion}: {value.toFixed(1)}%</li>
                             ))}
                           </ul>
                         </div>
                         <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                          <h4 className="text-sm font-medium text-neutral-lightest">End</h4>
+                          {/* Sub-title: White */}
+                          <h4 className="text-sm font-medium text-white">End</h4>
                           <ul className="text-sm">
+                            {/* Content: Black */}
                             {Object.entries(faceData.emotion_journey.end).map(([emotion, value]) => (
-                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                              <li key={emotion} className="text-black">{emotion}: {value.toFixed(1)}%</li>
                             ))}
                           </ul>
                         </div>
@@ -176,13 +185,15 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
 
                   {faceData.interpretation && (
                     <div className="mb-4">
-                      <h3 className="font-semibold mb-2">Analysis</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Analysis</h3>
                       <div className="p-4 bg-opacity-10 bg-white rounded">
+                        {/* Content: Black */}
                         {Array.isArray(faceData.interpretation) ?
                           faceData.interpretation.map((point, i) => (
-                            <p key={i} className="text-neutral-lightest mb-2">{point}</p>
+                            <p key={i} className="text-black mb-2">{point}</p>
                           )) :
-                          <p className="text-neutral-lightest">{faceData.interpretation}</p>
+                          <p className="text-black">{faceData.interpretation}</p>
                         }
                       </div>
                     </div>
@@ -190,11 +201,13 @@ const EmotionDashboard = ({ analysisResults, isRecording }) => {
 
                   {faceData.educational_recommendations && (
                     <div>
-                      <h3 className="font-semibold mb-2">Recommendations</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Recommendations</h3>
                       <div className="p-4 bg-opacity-10 bg-white rounded">
                         <ul className="list-disc pl-5">
+                          {/* Content: Black */}
                           {faceData.educational_recommendations.map((rec, i) => (
-                            <li key={i} className="text-neutral-lightest">{rec}</li>
+                            <li key={i} className="text-black">{rec}</li>
                           ))}
                         </ul>
                       </div>

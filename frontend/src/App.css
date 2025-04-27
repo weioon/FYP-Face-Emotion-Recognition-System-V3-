@@ -1,11 +1,11 @@
 /* Main App Container */
 .App {
   font-family: var(--font-family);
-  color: var(--neutral-lightest);
+  color: var(--neutral-darkest); /* Ensure text is readable on lighter gradient */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #0a1022 0%, #0f3460 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   background-attachment: fixed;
   position: relative;
 }
@@ -157,23 +157,26 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0f3460, #0a1022);
+  /* Example: Deep Blue gradient */
+  background: linear-gradient(135deg, var(--primary-color), var(--darker-purple));
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #E94560, #C70039);
+  background: linear-gradient(135deg, var(--danger-color), #D03025); /* Darker Red */
   color: white;
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #16FF00, #00b3ff);
+  /* Example: Gold and Green */
+  background: linear-gradient(135deg, var(--accent-color), var(--success-color));
   color: var(--neutral-darkest);
 }
 
 .btn-warning {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+   /* Example: Use Red */
+  background: linear-gradient(135deg, var(--danger-color), #D03025); /* Darker Red */
   color: white;
 }
 
@@ -449,11 +452,10 @@
 }
 
 .page-number.active {
-  background: linear-gradient(90deg, var(--accent-color), rgba(22, 255, 0, 0.7));
+  background: linear-gradient(90deg, var(--accent-color), rgba(255, 215, 0, 0.7)); /* Gold */
   color: var(--neutral-darkest);
   font-weight: 600;
-  box-shadow: 0 5px 15px rgba(22, 255, 0, 0.3);
-  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); /* Gold shadow */
 }
 
 .pagination-btn {
@@ -533,7 +535,7 @@
 
 /* Enhanced view button */
 .view-btn-table {
-  background: linear-gradient(90deg, var(--accent-color), rgba(22, 255, 0, 0.7));
+  background: linear-gradient(90deg, var(--accent-color), var(--secondary-color));
   color: var(--neutral-darkest);
   font-weight: 600;
   padding: 10px 16px;
@@ -629,7 +631,7 @@
 /* Fix section headings in dashboard */
 .analysis-section h3,
 .recording-detail h3 {
-  color: black;
+  color: var(--neutral-lightest); /* Ensure headings are light */
   font-size: 1.5rem;
   margin-top: 40px;
   margin-bottom: 20px;
@@ -640,6 +642,7 @@
   align-items: center;
   gap: 10px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.5px;
 }
 
 /* Add accent underline to headings */
@@ -732,7 +735,11 @@
 .journey-section,
 .recommendations-section,
 .recording-header {
-  background: hsl(300, 100%, 47%); /* Standard purple for all sections */
+  /* Replace hardcoded purple with a variable */
+  background: var(--darker-purple); /* Use darker purple */
+  color: var(--neutral-lightest); /* Text inside these sections should be light */
+
+  /* Or use a slightly darker blue: background: #001a4d; */
   padding: 24px;
   border-radius: var(--border-radius-lg);
   margin: 24px 0;
@@ -741,7 +748,23 @@
 }
 
 .charts-container {
-  border-left: 5px solid var(--secondary-accent); /* Blue accent */
+  border-left: 5px solid var(--secondary-accent); /* Light Blue accent */
+}
+
+.summary-section {
+  border-left: 5px solid var(--secondary-accent); /* Light Blue */
+}
+
+.interpretation-section {
+  border-left: 5px solid var(--warning-color); /* Red */
+}
+
+.journey-section {
+  border-left: 5px solid var(--accent-color); /* Gold */
+}
+
+.recommendations-section {
+  border-left: 5px solid var(--success-color); /* Green */
 }
 
 .summary-section,
@@ -786,11 +809,6 @@
 /* Add these styles to frontend/src/App.css */
 
 /* Fix for text visibility in recording details */
-.recording-detail h3 {
-  color: white; /* Make headings white for better contrast */
-  margin-top: 0; /* Remove top margin as each section has padding */
-}
-
 .recording-detail h3 i {
   color: var(--accent-color);/*icon colour*/
 }
@@ -818,8 +836,7 @@
 }
 
 .journey-stages .stage {
-  background: rgba(255, 255, 255, 0.03);/*Emotion journey line*/
-  color: black;
+  background: rgba(255, 255, 255, 0.03); /* Keep light background */
 }
 
 .journey-stages .stage h4 {
@@ -828,8 +845,7 @@
 }
 
 .journey-stages .stage li {
-  color: black;/*Emotion text*/
-  background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+  color: var(--neutral-lightest); /* Ensure text on dark purple bg is light */
 }
 
 /* Fix chart container text */
@@ -841,14 +857,8 @@
 
 /* Fix summary text */
 .summary-text {
-  color: black;/*text color*/
-  line-height: 1.6;
-  font-size: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 20px 24px;
-  border-radius: var(--border-radius-md);
-  margin-bottom: 30px;
-  border-left: 3px solid var(--secondary-accent);
+  color: var(--neutral-lightest); /* Ensure text on dark purple bg is light */
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Fix text colors in all sections for better readability */
@@ -869,8 +879,8 @@
 }
 
 .recommendation-item {
-  background-color: rgba(255, 255, 255, 0.1);
-}
+  color: var(--neutral-lightest); /* Ensure text on dark purple bg is light */
+  background-color: rgba(255, 255, 255, 0.1); /* Keep light background */}
 
 .recording-meta p {
   color: white;
@@ -901,8 +911,8 @@
 .journey-stages .stage h4,
 .recommendation-item,
 .recording-meta p {
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: var(--neutral-lightest); /* Ensure text on dark purple bg is light */
+
 }
 /* Custom File Upload Styling */
 .image-upload-section {
@@ -943,7 +953,7 @@
 }
 
 .file-upload-label {
-  background: linear-gradient(135deg, var(--secondary-accent), #00b3ff 70%);
+  background: linear-gradient(135deg, var(--secondary-color), var(--secondary-accent) 70%);
   color: var(--neutral-lightest);
   font-weight: 600;
   padding: 16px 24px;

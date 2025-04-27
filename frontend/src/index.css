@@ -1,12 +1,15 @@
 :root {
-  /* Modern futuristic color palette */
-  --primary-color: #0a1022;       /* Deep navy - main background */
-  --secondary-color: #0F3460;     /* Secondary blue - elements */
-  --accent-color: #16FF00;        /* Electric green - highlights/actions */
-  --secondary-accent: #00b3ff;    /* Bright blue - secondary highlights */
-  --warning-color: #FF6B6B;       /* Coral red - attention */
-  --danger-color: #E94560;        /* Bright red - errors, alerts */
-  
+  /* Paris 2024 Inspired Palette - Purple Focus */
+  --primary-color: #A499C3;       /* Main Purple (RGB 164, 153, 195) */
+  --secondary-color: #00A1DF;    /* Light Blue (Keep for contrast) */
+  --accent-color: #FFD700;        /* Gold (Keep as main accent) */
+  --secondary-accent: #E6007E;    /* Pink/Magenta (Keep for variety) */
+  --darker-purple: #8A7DAA;      /* Darker shade for backgrounds */
+
+  --warning-color: #EF4135;       /* Red */
+  --danger-color: #EF4135;        /* Red */
+  --success-color: #008542;       /* Green */
+
   /* Neutrals */
   --neutral-lightest: #FFFFFF;
   --neutral-light: #F0F5FF;
@@ -14,24 +17,24 @@
   --neutral-dark: #3F4E6B;
   --neutral-darkest: #0B101E;
 
-  /* Emotion colors - vibrant modern palette */
-  --emotion-happy: #16FF00;       /* Electric green */
-  --emotion-sad: #00b3ff;         /* Bright blue */
-  --emotion-angry: #FF6B6B;       /* Coral red */
-  --emotion-neutral: #9BA4B4;     /* Cool gray */
-  --emotion-surprise: #FF9551;    /* Orange */
-  --emotion-fear: #9C72FF;        /* Purple */
-  --emotion-disgust: #00CFBB;     /* Teal */
+  /* Emotion colors - Adjust if needed for harmony */
+  --emotion-happy: #FFD700;       /* Gold */
+  --emotion-sad: #00A1DF;         /* Light Blue */
+  --emotion-angry: #EF4135;       /* Red */
+  --emotion-neutral: #9BA4B4;     /* Gray */
+  --emotion-surprise: #E6007E;    /* Pink/Magenta */
+  --emotion-fear: #7A6CAD;        /* Adjusted Purple for Fear */
+  --emotion-disgust: #008542;     /* Green */
 
   /* Typography */
   --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  
+
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
   --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.25);
   --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
-  
+
   /* Border radius */
   --border-radius-sm: 8px;
   --border-radius-md: 12px;
@@ -44,8 +47,9 @@ body {
   font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Use primary purple for main background */
   background-color: var(--primary-color);
-  color: var(--neutral-lightest);
+  color: var(--neutral-darkest); /* Change default text to dark for light purple bg */
 }
 
 code {

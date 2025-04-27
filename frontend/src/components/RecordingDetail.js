@@ -146,7 +146,6 @@ const RecordingDetail = () => {
   };
   // --- End of chart options ---
 
-
   return (
     <div className="emotion-dashboard space-y-6">
       {/* Recording metadata */}
@@ -197,7 +196,9 @@ const RecordingDetail = () => {
                 <div className="analysis-section">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <h3 className="font-semibold mb-2">Session Overview</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Session Overview</h3>
+                      {/* Content: Ensure content text is light on dark background */}
                       <p className="text-neutral-lightest">
                         <span className="font-medium">Duration:</span> {faceData.duration?.toFixed(2)} seconds
                       </p>
@@ -205,58 +206,69 @@ const RecordingDetail = () => {
                         <span className="font-medium">Dominant Emotion:</span> {faceData.dominant_emotion}
                       </p>
                     </div>
-                    
-                    {/* --- REMOVE the inline style attribute from this div --- */}
+
+                    {/* Chart container remains unchanged */}
                     <div className="chart-container">
                       <Bar data={chartData} options={chartOptions} />
                     </div>
                   </div>
-                  
+
                   {/* Emotional journey section */}
                   {faceData.emotion_journey && (
                     <div className="mt-6">
-                      <h3 className="font-semibold mb-2">Emotional Journey</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Emotional Journey</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                          <h4 className="text-sm font-medium text-neutral-lightest">Beginning</h4>
+                          {/* Sub-title: White */}
+                          <h4 className="text-sm font-medium text-white">Beginning</h4>
                           <ul className="text-sm">
-                            {Object.entries(faceData.emotion_journey.beginning).map(([emotion, value]) => (
-                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                            {/* Content: Light */}
+                            {Object.entries(faceData.emotion_journey.beginning || {}).map(([emotion, value]) => (
+                              <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
                             ))}
                           </ul>
                         </div>
                         <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                          <h4 className="text-sm font-medium text-neutral-lightest">Middle</h4>
+                          {/* Sub-title: White */}
+                          <h4 className="text-sm font-medium text-white">Middle</h4>
                           <ul className="text-sm">
-                            {Object.entries(faceData.emotion_journey.middle).map(([emotion, value]) => (
-                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                            {/* Content: Light */}
+                            {Object.entries(faceData.emotion_journey.middle || {}).map(([emotion, value]) => (
+                              <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
                             ))}
                           </ul>
                         </div>
                         <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                          <h4 className="text-sm font-medium text-neutral-lightest">End</h4>
+                          {/* Sub-title: White */}
+                          <h4 className="text-sm font-medium text-white">End</h4>
                           <ul className="text-sm">
-                            {Object.entries(faceData.emotion_journey.end).map(([emotion, value]) => (
-                              <li key={emotion} className="text-neutral-lightest">{emotion}: {value.toFixed(1)}%</li>
+                            {/* Content: Light */}
+                            {Object.entries(faceData.emotion_journey.end || {}).map(([emotion, value]) => (
+                              <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
                             ))}
                           </ul>
                         </div>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Interpretation and recommendations */}
                   {faceData.interpretation && (
                     <div className="mt-6">
-                      <h3 className="font-semibold mb-2">Analysis</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Analysis</h3>
+                      {/* Content: Light */}
                       <p className="text-neutral-lightest">{faceData.interpretation}</p>
                     </div>
                   )}
-                  
+
                   {faceData.educational_recommendations && (
                     <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Recommendations</h3>
+                      {/* Title: White */}
+                      <h3 className="font-semibold mb-2 text-white">Recommendations</h3>
                       <ul className="list-disc pl-5">
+                        {/* Content: Light */}
                         {faceData.educational_recommendations.map((rec, i) => (
                           <li key={i} className="text-neutral-lightest">{rec}</li>
                         ))}
@@ -273,17 +285,19 @@ const RecordingDetail = () => {
         <Card title="Emotion Analysis" variant="primary">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold mb-2">Session Overview</h3>
+              {/* Title: White */}
+              <h3 className="font-semibold mb-2 text-white">Session Overview</h3>
+              {/* Content: Light */}
               <p className="text-neutral-lightest">
                 <span className="font-medium">Duration:</span> {recording.analysis_data.duration?.toFixed(2)} seconds
               </p>
               <p className="text-neutral-lightest">
-                <span className="font-medium">Dominant Emotion:</span> {recording.analysis_data.dominant_emotion || 
+                <span className="font-medium">Dominant Emotion:</span> {recording.analysis_data.dominant_emotion ||
                   (recording.analysis_data.significant_emotions && recording.analysis_data.significant_emotions[0]?.emotion)}
               </p>
             </div>
-            
-            {/* --- REMOVE the inline style attribute from this div --- */}
+
+            {/* Chart container remains unchanged */}
             <div className="chart-container">
               <Bar
                 data={{
@@ -309,27 +323,34 @@ const RecordingDetail = () => {
 
           {recording.analysis_data.emotion_journey && (
             <div className="mt-6">
-              <h3 className="font-semibold mb-2">Emotional Journey</h3>
+              {/* Title: White */}
+              <h3 className="font-semibold mb-2 text-white">Emotional Journey</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                  <h4 className="text-sm font-medium text-neutral-lightest">Beginning</h4>
+                  {/* Sub-title: White */}
+                  <h4 className="text-sm font-medium text-white">Beginning</h4>
                   <ul className="text-sm">
+                    {/* Content: Light */}
                     {Object.entries(recording.analysis_data.emotion_journey.beginning || {}).map(([emotion, value]) => (
                       <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
                     ))}
                   </ul>
                 </div>
                 <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                  <h4 className="text-sm font-medium text-neutral-lightest">Middle</h4>
+                  {/* Sub-title: White */}
+                  <h4 className="text-sm font-medium text-white">Middle</h4>
                   <ul className="text-sm">
+                    {/* Content: Light */}
                     {Object.entries(recording.analysis_data.emotion_journey.middle || {}).map(([emotion, value]) => (
                       <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
                     ))}
                   </ul>
                 </div>
                 <div className="journey-phase p-4 bg-opacity-10 bg-white rounded">
-                  <h4 className="text-sm font-medium text-neutral-lightest">End</h4>
+                  {/* Sub-title: White */}
+                  <h4 className="text-sm font-medium text-white">End</h4>
                   <ul className="text-sm">
+                    {/* Content: Light */}
                     {Object.entries(recording.analysis_data.emotion_journey.end || {}).map(([emotion, value]) => (
                       <li key={emotion} className="text-neutral-lightest">{emotion}: {typeof value === 'number' ? value.toFixed(1) : value}%</li>
                     ))}
@@ -338,26 +359,30 @@ const RecordingDetail = () => {
               </div>
             </div>
           )}
-          
+
           {recording.analysis_data.interpretation && (
             <div className="mt-6">
-              <h3 className="font-semibold mb-2">Analysis</h3>
+              {/* Title: White */}
+              <h3 className="font-semibold mb-2 text-white">Analysis</h3>
               <div className="p-4 bg-opacity-10 bg-white rounded">
-                {Array.isArray(recording.analysis_data.interpretation) ? 
+                {/* Content: Light */}
+                {Array.isArray(recording.analysis_data.interpretation) ?
                   recording.analysis_data.interpretation.map((point, index) => (
                     <p key={index} className="text-neutral-lightest mb-2">{point}</p>
-                  )) : 
+                  )) :
                   <p className="text-neutral-lightest">{recording.analysis_data.interpretation}</p>
                 }
               </div>
             </div>
           )}
-          
+
           {recording.analysis_data.educational_recommendations && (
             <div className="mt-4">
-              <h3 className="font-semibold mb-2">Recommendations</h3>
+              {/* Title: White */}
+              <h3 className="font-semibold mb-2 text-white">Recommendations</h3>
               <div className="p-4 bg-opacity-10 bg-white rounded">
-                {Array.isArray(recording.analysis_data.educational_recommendations) ? 
+                {/* Content: Light */}
+                {Array.isArray(recording.analysis_data.educational_recommendations) ?
                   recording.analysis_data.educational_recommendations.map((rec, index) => (
                     <p key={index} className="text-neutral-lightest mb-2">{rec}</p>
                   )) :

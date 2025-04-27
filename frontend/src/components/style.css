@@ -1,21 +1,31 @@
 /* Academic Theme for EmotionWave */
 :root {
-  /* University-inspired color palette */
-  --primary-color: #2C3E50;       /* Dark blue - scholarly, authoritative */
-  --secondary-color: #3498DB;     /* Bright blue - trustworthy, professional */
-  --accent-color: #E74C3C;        /* Red - attention, importance */
-  --success-color: #27AE60;       /* Green - positive, growth */
-  --light-color: #ECF0F1;         /* Light gray - clean background */
-  --dark-color: #2C3E50;          /* Dark text */
-  
-  /* Emotion colors */
-  --emotion-happy: #F1C40F;       /* Yellow */
-  --emotion-sad: #3498DB;         /* Blue */
-  --emotion-angry: #E74C3C;       /* Red */
-  --emotion-neutral: #95A5A6;     /* Gray */
-  --emotion-surprise: #9B59B6;    /* Purple */
-  --emotion-fear: #1ABC9C;        /* Teal */
-  --emotion-disgust: #16A085;     /* Dark teal */
+  /* Paris 2024 Inspired Palette - More Vibrant Purple */
+  --primary-color: #8E44AD;       /* More Saturated Purple */
+  --secondary-color: #00A1DF;    /* Light Blue */
+  --accent-color: #FFD700;        /* Gold */
+  --secondary-accent: #E6007E;    /* Pink/Magenta */
+  --darker-purple: #70368A;      /* Adjusted Darker Shade */
+
+  --warning-color: #EF4135;       /* Red */
+  --danger-color: #EF4135;        /* Red */
+  --success-color: #008542;       /* Green */
+
+  /* Neutrals */
+  --neutral-lightest: #FFFFFF;
+  --neutral-light: #F0F5FF;
+  --neutral-medium: #9BA4B4;
+  --neutral-dark: #3F4E6B;
+  --neutral-darkest: #0B101E;
+
+  /* Emotion colors - Adjust if needed */
+  --emotion-happy: #FFD700;       /* Gold */
+  --emotion-sad: #00A1DF;         /* Light Blue */
+  --emotion-angry: #EF4135;       /* Red */
+  --emotion-neutral: #9BA4B4;     /* Gray */
+  --emotion-surprise: #E6007E;    /* Pink/Magenta */
+  --emotion-fear: #7A6CAD;        /* Keep desaturated purple for Fear */
+  --emotion-disgust: #008542;     /* Green */
 
   /* Typography */
   --font-family: 'Roboto', 'Segoe UI', sans-serif;
@@ -35,27 +45,31 @@
 
 /* Base styles */
 body {
+  margin: 0;
   font-family: var(--font-family);
-  background-color: #f8f9fa;
-  color: var(--dark-color);
-  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Use new primary purple for main background */
+  background-color: var(--primary-color);
+  /* Text color might need to be light again if the purple is dark enough */
+  color: var(--neutral-lightest);
 }
 
+/* Ensure headings are light on the new darker purple background */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--heading-font);
-  font-weight: 600;
-  color: var(--primary-color);
+  color: var(--neutral-lightest);
 }
 
 /* Academic Card Design */
 .card {
-  background: hsl(300, 100%, 47%);
+  background: var(--darker-purple); /* Use darker purple */
+  color: var(--neutral-lightest); /* Ensure text in card is light */
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
   margin-bottom: var(--spacing-unit);
-  border: 1px solid #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Lighter border for dark bg */
 }
 
 .card:hover {
@@ -64,7 +78,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .card-header {
-  background-color: var(--primary-color);
+  background-color: var(--primary-color); /* Use main purple for card header */
   color: white;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(0,0,0,0.1);
@@ -168,7 +182,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Enhanced fully responsive navbar */
 .navbar {
-  background: linear-gradient(90deg, rgba(10, 16, 34, 0.95), rgba(15, 52, 96, 0.95));
+  /* Purple and Light Blue */
+  background: linear-gradient(90deg, rgba(164, 153, 195, 0.95), rgba(0, 161, 223, 0.95)); /* Using RGB values for transparency */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   width: 100%;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -205,7 +220,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .system-name h1 {
   margin: 0;
-  background: linear-gradient(90deg, #fff, #16FF00);
+  /* Gold and White */
+  background: linear-gradient(90deg, #fff, var(--accent-color)); /* White/Gold */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-size: 1.8rem;
@@ -314,7 +330,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-btn {
-  color: var(--neutral-medium);
+  color: var(--neutral-lightest); /* CHANGE: Make default color white */
   text-decoration: none;
   font-weight: 500;
   padding: 10px 20px;
@@ -335,7 +351,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translate(-50%, -50%) scale(0);
   width: 150%;
   height: 150%;
-  background: radial-gradient(circle, rgba(22, 255, 0, 0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%); /* Gold radial */
   border-radius: 50%;
   transition: transform 0.5s ease;
   z-index: -1;
@@ -351,7 +367,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  /* Keep hover effect subtle if default is white */
+  background-color: rgba(255, 255, 255, 0.1);
   color: var(--neutral-lightest);
 }
 
@@ -360,10 +377,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-btn.active {
-  background: linear-gradient(90deg, rgba(22, 255, 0, 0.8), rgba(22, 255, 0, 0.6));
+  /* Gold gradient */
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.8), rgba(255, 215, 0, 0.6)); /* Gold */
   color: var(--neutral-darkest);
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(22, 255, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); /* Gold shadow */
 }
 
 .nav-user {
@@ -391,8 +409,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .logout-btn {
   background: transparent;
-  border: 1px solid var(--accent-color);
-  color: var(--accent-color);
+  border: 1px solid var(--accent-color); /* Gold border */
+  color: var(--accent-color); /* Gold text */
   padding: 8px 16px;
   border-radius: var(--border-radius-md);
   font-weight: 500;
@@ -421,8 +439,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .logout-btn:hover {
-  background-color: var(--accent-color);
-  color: var(--neutral-darkest);
+  background-color: var(--accent-color); /* Gold background */
+  color: var(--neutral-darkest); /* Dark text */
   box-shadow: 0 5px 15px rgba(22, 255, 0, 0.3);
 }
 
@@ -482,7 +500,7 @@ h1, h2, h3, h4, h5, h6 {
 .auth-page {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%); /* Match App background */
   position: relative;
   overflow: hidden;
 }
@@ -569,7 +587,7 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 480px;
   margin: 0 auto;
   position: relative;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(138, 125, 170, 0.5); /* Semi-transparent darker purple */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -594,14 +612,14 @@ h1, h2, h3, h4, h5, h6 {
 .auth-logo i {
   font-size: 36px;
   margin-right: 16px;
-  color: var(--accent-color);
+  color: var(--accent-color); /* Gold */
   filter: drop-shadow(0 0 8px rgba(22, 255, 0, 0.5));
   animation: pulse 2s infinite;
 }
 
 .auth-logo h1 {
   font-size: 32px;
-  background: linear-gradient(90deg, #fff, #16FF00 70%);
+  background: linear-gradient(90deg, #fff, var(--accent-color)); /* White/Gold */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
@@ -612,7 +630,7 @@ h1, h2, h3, h4, h5, h6 {
 .auth-container h2 {
   text-align: center;
   margin-bottom: 32px;
-  color: var(--neutral-lightest);
+  color: var(--neutral-lightest); /* Light text on purple bg */
   font-weight: 600;
   font-size: 2rem;
   letter-spacing: 1px;
@@ -643,7 +661,7 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius-md);
-  color: var(--neutral-lightest);
+  color: var(--neutral-lightest); /* Light text */
   font-size: 1rem;
   transition: all 0.3s;
   letter-spacing: 0.5px;
@@ -668,7 +686,7 @@ h1, h2, h3, h4, h5, h6 {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: var(--neutral-lightest);
+  color: var(--neutral-lightest); /* Light text on purple bg */
   font-weight: 500;
   font-size: 0.9rem;
   letter-spacing: 0.5px;
@@ -678,7 +696,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-auth {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(90deg, var(--accent-color), #00b3ff);
+  background: linear-gradient(90deg, var(--accent-color), var(--secondary-color)); /* Gold and Light Blue */
   color: var(--neutral-darkest);
   font-weight: 600;
   font-size: 1.1rem;
@@ -722,12 +740,12 @@ h1, h2, h3, h4, h5, h6 {
 .auth-switch {
   text-align: center;
   margin-top: 28px;
-  color: var(--neutral-medium);
+  color: var(--neutral-medium); /* Medium text */
   font-size: 0.95rem;
 }
 
 .auth-switch .link {
-  color: var(--accent-color);
+  color: var(--accent-color); /* Gold link */
   cursor: pointer;
   font-weight: 500;
   position: relative;
@@ -751,8 +769,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Error message */
 .error-message {
-  background-color: rgba(255, 107, 107, 0.2);
-  color: var(--warning-color);
+  color: var(--warning-color); /* Red text */
+  background-color: rgba(239, 65, 53, 0.2); /* Red background */
   padding: 12px 16px;
   border-radius: var(--border-radius-md);
   margin-bottom: 24px;
