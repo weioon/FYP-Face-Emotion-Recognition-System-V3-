@@ -331,40 +331,6 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
                 src={selectedImage}
                 alt="Uploaded"
               />
-
-              {/* Draw emotion boxes on the uploaded image */}
-              {imageResults && imageResults.map((emotion, index) => {
-                // Coordinates from backend are [x_min, y_min, x_max, y_max]
-                const [x, y, xMax, yMax] = emotion.face_location;
-                // IMPORTANT: Accurate positioning requires knowing the ratio between the
-                // original image dimensions and the displayed image dimensions.
-                // The following percentages are placeholders and might be inaccurate.
-                // For accurate display, consider calculating on the backend or passing dimensions.
-                const placeholderImgWidth = 640; // Assume a width for placeholder calculation
-                const placeholderImgHeight = 480; // Assume a height for placeholder calculation
-                const leftPercent = (x / placeholderImgWidth) * 100;
-                const topPercent = (y / placeholderImgHeight) * 100;
-                const widthPercent = ((xMax - x) / placeholderImgWidth) * 100;
-                const heightPercent = ((yMax - y) / placeholderImgHeight) * 100;
-
-                return (
-                  <div
-                    key={index}
-                    className="image-emotion-box" // Use class for border/shadow
-                    style={{
-                      // Keep inline styles ONLY for positioning
-                      left: `${leftPercent}%`,
-                      top: `${topPercent}%`,
-                      width: `${widthPercent}%`,
-                      height: `${heightPercent}%`,
-                    }}
-                  >
-                    <div className="image-emotion-label"> {/* Use class for label style */}
-                      {emotion.dominant_emotion}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
 
             {/* Display analysis results BELOW the image */}
