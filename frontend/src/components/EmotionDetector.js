@@ -7,132 +7,140 @@ import Button from './Button';
 const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) => {
   const webcamRef = useRef(null);
   const [emotions, setEmotions] = useState([]);
-  const [isCapturing, setIsCapturing] = useState(false);
   const [buttonLock, setButtonLock] = useState(false);
   const captureIntervalRef = useRef(null);
   const [debugInfo, setDebugInfo] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageResults, setImageResults] = useState(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-
-  // Handle camera capture toggle
-  const handleCameraToggle = () => {
-    setButtonLock(true);
-    
-    if (isCapturing) {
-      // Stop the camera
-      clearInterval(captureIntervalRef.current);
-      setEmotions([]);
-      setIsCapturing(false);
-    } else {
-      // Start the camera
-      setIsCapturing(true);
-      captureIntervalRef.current = setInterval(() => {
-        captureFrame();
-      }, 1000); // Capture frame every second
-    }
-    
-    setTimeout(() => setButtonLock(false), 1000); // Prevent rapid clicking
-  };
-
-  // Handle recording toggle
-  const handleRecordingToggle = async () => {
-    setButtonLock(true);
-    
-    if (isRecording) {
-      // Stop recording
-      try {
-        const response = await axios.post('http://localhost:8000/stop_recording/');
-        setAnalysisResults(response.data);
-        setIsRecording(false);
-        clearInterval(captureIntervalRef.current);
-        captureIntervalRef.current = setInterval(() => {
-          captureFrame();
-        }, 1000); // Back to normal capture rate
-      } catch (err) {
-        console.error("Error stopping recording:", err);
-        setDebugInfo(`Error stopping recording: ${err.message}`);
-      }
-    } else {
-      // Start recording
-      try {
-        await axios.post('http://localhost:8000/start_recording/');
-        setIsRecording(true);
-        // Start sending frames more frequently for recording
-        clearInterval(captureIntervalRef.current);
-        captureIntervalRef.current = setInterval(() => {
-          captureFrame(true); // true indicates recording mode
-        }, 200); // More frequent captures during recording
-      } catch (err) {
-        console.error("Error starting recording:", err);
-        setDebugInfo(`Error starting recording: ${err.message}`);
-      }
-    }
-    
-    setTimeout(() => setButtonLock(false), 1000); // Prevent rapid clicking
-  };
+  const [webcamActive, setWebcamActive] = useState(false); // Track webcam state explicitly
 
   // Capture a frame from the webcam
-  const captureFrame = async (isRecordingMode = false) => {
-    if (!webcamRef.current) {
-      setDebugInfo('Webcam reference not available');
+  const captureFrame = async () => { // Removed isRecordingMode parameter
+    // Only capture if webcam is available
+    if (!webcamRef.current || !webcamRef.current.video || webcamRef.current.video.readyState < 3) {
+      // setDebugInfo('Capture skipped: Webcam not ready.');
       return;
     }
-    
+
     const screenshot = webcamRef.current.getScreenshot();
     if (!screenshot) {
-      setDebugInfo('Failed to get screenshot');
+      // setDebugInfo('Failed to get screenshot'); // Reduce noise
       return;
     }
-    
+
     try {
       const imageData = screenshot.split(',')[1];
-      
-      // Always use the detect_emotion endpoint - it handles both recording and non-recording modes
-      const response = await axios.post('http://localhost:8000/detect_emotion', 
+      const response = await axios.post('http://localhost:8000/detect_emotion',
         { image: imageData },
         { headers: { 'Content-Type': 'application/json' } }
       );
-      
-      // Only update UI with emotions when not in recording mode
-      if (!isRecordingMode || !isRecording) {
-        if (response.data && response.data.emotions) {
-          setEmotions(response.data.emotions);
-          setDebugInfo(`Detected ${response.data.emotions.length} faces`);
-        } else {
-          setEmotions([]);
-          setDebugInfo('No emotions data in response');
-        }
+
+      // ALWAYS update live emotion boxes based on the response
+      if (response.data && response.data.emotions) {
+        setEmotions(response.data.emotions);
+        // Optionally update debug info based on recording state if needed
+        // setDebugInfo(isRecording ? 'Recording frame...' : `Detected ${response.data.emotions.length} faces`);
       } else {
-        setDebugInfo('Recording frame...');
+        setEmotions([]);
+        // setDebugInfo(isRecording ? 'Recording frame...' : 'No emotions data in response');
       }
+
     } catch (err) {
       console.error("Error capturing frame:", err);
-      setDebugInfo(`Error: ${err.message}`);
+      setDebugInfo(`Frame capture error: ${err.message}`);
     }
   };
 
-  // Handle image uploads
+  // Renamed and updated function to handle both camera and recording
+  const handleDetectionToggle = async () => {
+    setButtonLock(true);
+    setDebugInfo('Processing request...'); // Give immediate feedback
+
+    if (isRecording) {
+      // Stop recording, analysis, and camera
+      try {
+        clearInterval(captureIntervalRef.current);
+        captureIntervalRef.current = null;
+
+        const response = await axios.post('http://localhost:8000/stop_recording/');
+        setAnalysisResults(response.data); // Update dashboard with results
+        setIsRecording(false);
+        setWebcamActive(false); // Deactivate webcam component
+        setEmotions([]); // Clear emotion boxes
+        setDebugInfo('Detection stopped.');
+
+        // Explicitly stop the stream tracks
+        if (webcamRef.current && webcamRef.current.stream) {
+            const tracks = webcamRef.current.stream.getTracks();
+            tracks.forEach(track => track.stop());
+            webcamRef.current.stream = null; // Clear the stream reference
+        }
+         if (webcamRef.current && webcamRef.current.video && webcamRef.current.video.srcObject) {
+             const tracks = webcamRef.current.video.srcObject.getTracks();
+             tracks.forEach(track => track.stop());
+             webcamRef.current.video.srcObject = null; // Ensure video element stream is cleared
+         }
+
+
+      } catch (err) {
+        console.error("Error stopping detection:", err);
+        setDebugInfo(`Error stopping detection: ${err.response?.data?.detail || err.message}`);
+        setTimeout(() => setButtonLock(false), 2000);
+        return;
+      }
+    } else {
+      // Start camera and recording
+      try {
+        setWebcamActive(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        await axios.post('http://localhost:8000/start_recording/');
+        setIsRecording(true);
+
+        // Start sending frames frequently
+        captureIntervalRef.current = setInterval(() => {
+          captureFrame(); // Call captureFrame without parameters
+        }, 200); // Recording capture rate
+        setDebugInfo('Detection started.');
+
+      } catch (err) {
+        console.error("Error starting detection:", err);
+        setDebugInfo(`Error starting detection: ${err.response?.data?.detail || err.message}`);
+        setIsRecording(false);
+        setWebcamActive(false);
+        if (captureIntervalRef.current) {
+          clearInterval(captureIntervalRef.current);
+          captureIntervalRef.current = null;
+        }
+        setTimeout(() => setButtonLock(false), 2000);
+        return;
+      }
+    }
+
+    setTimeout(() => setButtonLock(false), 1000);
+  };
+
+  // Handle image uploads (no changes needed here)
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
-    // Set the file object URL as selectedImage
+
     setSelectedImage(URL.createObjectURL(file));
+    setImageResults(null); // Clear previous image results
     setIsProcessingImage(true);
-    
+    setDebugInfo('Processing uploaded image...');
+
     try {
-      // Create form data
       const formData = new FormData();
       formData.append('file', file);
-      
-      // Send to backend
+
       const response = await axios.post(
-        'http://localhost:8000/detect_emotion_from_image', 
-        formData, 
+        'http://localhost:8000/detect_emotion_from_image',
+        formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
-      
+
       if (response.data && response.data.emotions) {
         setImageResults(response.data.emotions);
         setDebugInfo(`Detected ${response.data.emotions.length} faces in uploaded image`);
@@ -142,204 +150,102 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
       }
     } catch (err) {
       console.error("Error processing image:", err);
-      setDebugInfo(`Error: ${err.message}`);
+      setDebugInfo(`Image processing error: ${err.response?.data?.detail || err.message}`);
     } finally {
       setIsProcessingImage(false);
     }
   };
 
-  // Clean up interval on unmount
+  // Clean up interval and stop webcam on unmount
   useEffect(() => {
     return () => {
       if (captureIntervalRef.current) {
         clearInterval(captureIntervalRef.current);
       }
+      // Stop webcam stream on unmount
+       if (webcamRef.current && webcamRef.current.stream) {
+           const tracks = webcamRef.current.stream.getTracks();
+           tracks.forEach(track => track.stop());
+       }
+        if (webcamRef.current && webcamRef.current.video && webcamRef.current.video.srcObject) {
+             const tracks = webcamRef.current.video.srcObject.getTracks();
+             tracks.forEach(track => track.stop());
+             webcamRef.current.video.srcObject = null;
+         }
+      // Optional: Stop backend recording if unmounting while recording is active
+      // Consider if this is desired behavior as it might lead to incomplete recordings.
+      // if (isRecording) {
+      //   axios.post('http://localhost:8000/stop_recording/').catch(err => console.error("Error stopping recording on unmount:", err));
+      // }
     };
-  }, []);
+  }, []); // Run cleanup only once on unmount
 
-  // Define the green color for emotion boxes - using the EmotionWave green
-  const greenBorderColor = "#7AB317";  // From --emotion-happy in index.css
+  // Define border color based on recording state
+  const greenBorderColor = 'rgba(46, 204, 113, 0.8)'; // Green for detection boxes
 
   return (
-    <Card title="Emotion Detection" variant="primary">
-      <div className="space-y-6">
-        <div className="webcam-container">
+    <Card title="Emotion Detector" variant="dark">
+      <div className="webcam-container" style={{ position: 'relative', minHeight: '300px', background: '#333', borderRadius: 'var(--border-radius)' }}>
+        {webcamActive ? (
           <Webcam
             audio={false}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
-            width={640}
-            height={480}
-            className="webcam"
+            videoConstraints={{ width: 640, height: 480 }}
+            className="webcam" // Use class for styling
+            mirrored={true}
+            onUserMedia={() => setDebugInfo('Webcam ready.')}
+            onUserMediaError={(err) => setDebugInfo(`Webcam Error: ${err.name}`)}
           />
-          
-          {isCapturing && (
-            <div className="camera-status-indicator">
-              {isRecording ? 'Recording' : 'Analyzing'}
-            </div>
-          )}
-          
-          {emotions && emotions.length > 0 && (
-            <div className="emotion-overlay">
-              {emotions.map((emotion, index) => {
-                if (!emotion.face_location || emotion.face_location.length !== 4) {
-                  console.warn('Invalid face_location data:', emotion);
-                  return null;
-                }
-                
-                const [x1, y1, x2, y2] = emotion.face_location;
-                const leftPercent = (x1 / 640) * 100;
-                const topPercent = (y1 / 480) * 100;
-                const widthPercent = ((x2 - x1) / 640) * 100;
-                const heightPercent = ((y2 - y1) / 480) * 100;
-                
-                return (
-                  <div 
-                    key={index} 
-                    style={{
-                      position: 'absolute',
-                      left: `${leftPercent}%`,
-                      top: `${topPercent}%`,
-                      width: `${widthPercent}%`,
-                      height: `${heightPercent}%`,
-                      border: `3px solid ${greenBorderColor}`,
-                      boxSizing: 'border-box',
-                      zIndex: 10
-                    }}
-                  >
-                    <div style={{
-                      position: 'absolute',
-                      top: '-28px',
-                      left: '0',
-                      background: greenBorderColor,
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {emotion.dominant_emotion}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        
-        {debugInfo && (
-          <div className="debug-info" style={{
-            marginBottom: '10px',
-            fontSize: '12px',
-            color: 'var(--neutral-dark)'
-          }}>
-            Debug: {debugInfo}
-          </div>
-        )}
-        
-        <div className="controls">
-          <Button 
-            onClick={handleCameraToggle}
-            variant={isCapturing ? 'danger' : 'primary'}
-            disabled={buttonLock}
-          >
-            {isCapturing ? (
-              <>
-                <i className="fas fa-stop mr-2"></i>
-                Stop Camera
-              </>
-            ) : (
-              <>
-                <i className="fas fa-camera mr-2"></i>
-                Start Camera
-              </>
-            )}
-          </Button>
-          
-          <Button 
-            onClick={handleRecordingToggle}
-            variant={isRecording ? 'warning' : 'success'}
-            disabled={!isCapturing || buttonLock}
-          >
-            {isRecording ? (
-              <>
-                <i className="fas fa-stop-circle mr-2"></i>
-                Stop Recording
-              </>
-            ) : (
-              <>
-                <i className="fas fa-record-vinyl mr-2"></i>
-                Start Recording
-              </>
-            )}
-          </Button>
-        </div>
-        
-        {buttonLock && (
-          <div className="processing-indicator">
-            <div className="spinner"></div>
-            <p>Processing request...</p>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '300px', color: 'var(--neutral-light)' }}>
+            Camera is off
           </div>
         )}
 
-        <div className="image-upload-section">
-          <h3>
-            <i className="fas fa-cloud-upload-alt"></i> 
-            Upload Image for Emotion Detection
-          </h3>
-          
-          <div className="custom-file-upload">
-            <input 
-              type="file" 
-              id="file-upload" 
-              accept="image/*" 
-              onChange={handleImageUpload} 
-              disabled={isProcessingImage}
-              className="file-input-hidden"
-            />
-            <label htmlFor="file-upload" className={`file-upload-label ${isProcessingImage ? 'disabled' : ''}`}>
-              <i className="fas fa-image"></i>
-              {isProcessingImage ? 'Processing...' : 'Choose an image'}
-            </label>
-            
-            {selectedImage && (
-              <div className="selected-file-name">
-                {selectedImage.substring(selectedImage.lastIndexOf('/') + 1)}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {selectedImage && (
-          <div className="uploaded-image-container" style={{ position: 'relative', marginTop: '20px' }}>
-            <img 
-              src={selectedImage} 
-              alt="Uploaded" 
-              style={{ maxWidth: '100%', maxHeight: '500px' }} 
-            />
-            
-            {/* Draw emotion boxes on the image */}
-            {imageResults && imageResults.map((emotion, index) => {
-              const [x, y, xMax, yMax] = emotion.face_location;
+        {/* Draw emotion boxes on top of the webcam feed */}
+        {webcamActive && emotions && emotions.length > 0 && (
+          <div className="emotion-overlay" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+            {emotions.map((emotion, index) => {
+              // Adjust coordinates based on mirrored view if necessary
+              // Assuming 640x480 webcam resolution
+              const videoWidth = 640;
+              const videoHeight = 480;
+              const [x1_orig, y1, x2_orig, y2] = emotion.face_location;
+
+              // Mirror the x-coordinates
+              const x1 = videoWidth - x2_orig;
+              const x2 = videoWidth - x1_orig;
+
+              const leftPercent = (x1 / videoWidth) * 100;
+              const topPercent = (y1 / videoHeight) * 100;
+              const widthPercent = ((x2 - x1) / videoWidth) * 100;
+              const heightPercent = ((y2 - y1) / videoHeight) * 100;
+
               return (
-                <div key={index} style={{
-                  position: 'absolute',
-                  left: `${(x / selectedImage.width) * 100}%`,
-                  top: `${(y / selectedImage.height) * 100}%`,
-                  width: `${((xMax - x) / selectedImage.width) * 100}%`,
-                  height: `${((yMax - y) / selectedImage.height) * 100}%`,
-                  border: '2px solid #00ff00',
-                  boxSizing: 'border-box'
-                }}>
-                  <div style={{
-                    background: 'rgba(0, 255, 0, 0.7)',
-                    color: 'white',
-                    padding: '2px 6px',
+                <div
+                  key={index}
+                  style={{
                     position: 'absolute',
-                    top: '-24px',
+                    left: `${leftPercent}%`,
+                    top: `${topPercent}%`,
+                    width: `${widthPercent}%`,
+                    height: `${heightPercent}%`,
+                    border: `3px solid ${greenBorderColor}`,
+                    boxSizing: 'border-box',
+                    zIndex: 10
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: '-28px', // Position label above the box
                     left: '0',
-                    fontSize: '12px',
+                    background: greenBorderColor,
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
                     whiteSpace: 'nowrap'
                   }}>
                     {emotion.dominant_emotion}
@@ -349,20 +255,145 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
             })}
           </div>
         )}
-        
-        {imageResults && imageResults.length > 0 && (
-          <div className="emotion-results" style={{ marginTop: '20px' }}>
-            <h4>Detected Emotions:</h4>
-            <ul>
-              {imageResults.map((emotion, index) => (
-                <li key={index}>
-                  Face {index+1}: {emotion.dominant_emotion} 
-                  ({Object.entries(emotion.emotion_scores)
-                    .map(([emotion, score]) => `${emotion}: ${score.toFixed(1)}%`)
-                    .join(', ')})
-                </li>
-              ))}
-            </ul>
+      </div>
+
+      {debugInfo && (
+        <div className="debug-info" style={{
+          marginTop: '10px', // Add margin top
+          marginBottom: '10px',
+          fontSize: '12px',
+          color: 'var(--neutral-light)', // Lighter color for dark card
+          textAlign: 'center'
+        }}>
+          Status: {debugInfo}
+        </div>
+      )}
+
+      <div className="controls" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+        {/* Combined Start/Stop Button */}
+        <Button
+          onClick={handleDetectionToggle}
+          variant={isRecording ? 'danger' : 'success'} // Red when recording, Green when stopped
+          disabled={buttonLock}
+        >
+          {isRecording ? (
+            <>
+              <i className="fas fa-stop-circle mr-2"></i>
+              Stop Detection
+            </>
+          ) : (
+            <>
+              <i className="fas fa-play-circle mr-2"></i>
+              Start Detection
+            </>
+          )}
+        </Button>
+
+        {/* Remove the separate Start/Stop Camera button */}
+        {/*
+        <Button
+          onClick={handleCameraToggle}
+          variant={isCapturing ? 'danger' : 'primary'}
+          disabled={buttonLock}
+        >
+          // ... removed ...
+        </Button>
+        */}
+
+        {/* Remove the separate Start/Stop Recording button */}
+        {/*
+        <Button
+          onClick={handleRecordingToggle}
+          variant={isRecording ? 'warning' : 'success'}
+          disabled={!isCapturing || buttonLock} // Was disabled if camera wasn't capturing
+        >
+         // ... removed ...
+        </Button>
+        */}
+      </div>
+
+      {/* Keep button lock indicator */}
+      {buttonLock && (
+        <div className="processing-indicator">
+          {/* Spinner or loading text can go here if needed, but debugInfo provides status */}
+        </div>
+      )}
+
+      {/* Image Upload Section - No changes needed here */}
+      <div className="image-upload-section" style={{ marginTop: '2rem', borderTop: '1px solid var(--neutral-dark)', paddingTop: '1.5rem' }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '1rem', color: 'var(--neutral-lightest)' }}>
+          <i className="fas fa-cloud_upload-alt mr-2"></i>
+          Upload Image for Emotion Detection
+        </h3>
+
+        <div className="custom-file-upload" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+          <input
+            type="file"
+            id="file-upload"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={isProcessingImage || isRecording} // Also disable if recording
+            className="file-input-hidden" // Keep hidden
+          />
+          <label htmlFor="file-upload" className={`file-upload-label ${isProcessingImage || isRecording ? 'disabled' : ''}`}>
+            <i className="fas fa-image mr-2"></i>
+            {isProcessingImage ? 'Processing...' : 'Choose an image'}
+          </label>
+
+          {selectedImage && !isProcessingImage && (
+            <div className="selected-file-name" style={{ fontSize: '0.9em', color: 'var(--neutral-light)' }}>
+              {/* Display filename or confirmation */}
+              {/* {selectedImage.substring(selectedImage.lastIndexOf('/') + 1)} */}
+            </div>
+          )}
+        </div>
+
+        {selectedImage && (
+          <div className="uploaded-image-container" style={{ position: 'relative', marginTop: '20px', textAlign: 'center' }}>
+            <img
+              src={selectedImage}
+              alt="Uploaded"
+              style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: 'var(--border-radius)' }}
+            />
+
+            {/* Draw emotion boxes on the uploaded image */}
+            {imageResults && imageResults.map((emotion, index) => {
+              // Coordinates from backend are [x_min, y_min, x_max, y_max]
+              const [x, y, xMax, yMax] = emotion.face_location;
+              // We need the original image dimensions to calculate percentages accurately.
+              // If not available, these boxes might be positioned incorrectly.
+              // For simplicity, let's assume the display size might differ from original.
+              // It's better to draw on the backend or pass dimensions.
+              // Placeholder positioning (might be inaccurate):
+              return (
+                <div key={index} style={{
+                  position: 'absolute',
+                  // These need calculation based on displayed image size vs original
+                  // left: `${(x / imgWidth) * 100}%`,
+                  // top: `${(y / imgHeight) * 100}%`,
+                  // width: `${((xMax - x) / imgWidth) * 100}%`,
+                  // height: `${((yMax - y) / imgHeight) * 100}%`,
+                  border: `3px solid ${greenBorderColor}`,
+                  boxSizing: 'border-box',
+                  pointerEvents: 'none' // Ensure overlay doesn't block interactions
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '-28px',
+                    left: '0',
+                    background: greenBorderColor,
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {emotion.dominant_emotion}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

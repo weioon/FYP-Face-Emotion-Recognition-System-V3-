@@ -114,16 +114,16 @@ class RealtimeEmotionDetector:
                     detector_backend='opencv',
                     silent=True
                 )
-                
+                print(f"DEBUG: DeepFace results: {results}") # <--- Add log
+
                 # Normalize results
                 if not isinstance(results, list):
                     results = [results]
-                
-                # Track detected faces in this frame
+
                 current_faces = []
-                
                 for result in results:
                     if 'emotion' in result:
+                        print(f"DEBUG: Processing detected face result: {result.get('dominant_emotion')}") # <--- Add log
                         # Get face rectangle
                         region = result.get('region', {})
                         
@@ -154,15 +154,15 @@ class RealtimeEmotionDetector:
                         
                         # Re-determine dominant emotion after adjustments
                         dominant_emotion = max(emotion_scores.items(), key=lambda x: x[1])[0].lower().capitalize()
-                        
-                        # Assign or match face ID based on position
-                        face_id = self._match_face(face_center)
+
+                        # Assign or match face ID based on position FIRST
+                        face_id = self._match_face(face_center) # <--- MOVED THIS LINE UP
+
+                        print(f"DEBUG: Face {face_id} detected with dominant emotion: {dominant_emotion}") # <--- Now this print will work
+
                         current_faces.append(face_id)
-                        
                         face_detected = True
-                        print(f"Face {face_id} detected with dominant emotion: {dominant_emotion}")
-                        
-                        # Store with proper coordinates for front-end rendering
+
                         emotion_data = {
                             'face_id': face_id,
                             'face_location': [x, y, x+w, y+h],
@@ -170,28 +170,30 @@ class RealtimeEmotionDetector:
                             'emotion_scores': emotion_scores
                         }
                         emotions_detected.append(emotion_data)
-                        
+
                         # Draw rectangle for visualization
                         cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                         # Add face ID to the rectangle
                         cv2.putText(frame, f"ID:{face_id}", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                        
+
                         # Record emotion data when recording is active
                         if self.recording:
+                            print(f"DEBUG: Recording is ACTIVE for face {face_id}")
                             timestamp = time.time() - self.start_time if self.start_time else 0
-                            
-                            # Create face record entry if it doesn't exist
+
                             if face_id not in self.face_records:
                                 self.face_records[face_id] = []
-                            
-                            # Add the emotion record for this face
-                            self.face_records[face_id].append({
+
+                            record_data = {
                                 "timestamp": timestamp,
                                 "emotion": dominant_emotion,
                                 "score": emotion_scores.get(dominant_emotion.lower(), 0)
-                            })
-                            print(f"Recording emotion for face {face_id}: {dominant_emotion} at {timestamp:.2f}s")
-                
+                            }
+                            self.face_records[face_id].append(record_data)
+                            print(f"DEBUG: Added record to self.face_records[{face_id}]: {record_data}")
+                        else:
+                            print(f"DEBUG: Recording is INACTIVE for face {face_id}")
+
                 # Clean up faces that disappeared
                 if self.recording:
                     self._handle_missing_faces(current_faces)

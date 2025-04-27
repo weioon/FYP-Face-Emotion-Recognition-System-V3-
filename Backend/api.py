@@ -249,8 +249,14 @@ async def detect_emotion(request: ImageRequest):
         image_data = base64.b64decode(request.image)
         nparr = np.frombuffer(image_data, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        # Process the frame - this will handle recording if recording is active
+
+        # --- Temporary Debugging: Save frame ---
+        debug_save_path = "debug_frame.jpg"
+        cv2.imwrite(debug_save_path, frame)
+        print(f"Debug: Saved incoming frame to {debug_save_path}")
+        # --- End Debugging ---
+
+        # Process the frame
         frame_with_emotions = detector.process_frame(frame)
         
         # Get emotion data
