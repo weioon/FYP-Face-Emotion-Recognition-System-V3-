@@ -1,25 +1,28 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# SQLite database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./emotion_recognition.db"
+load_dotenv() # Keep this if you use a .env file locally
 
-# Create engine
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL") # Read from environment variable
 
-# Create SessionLocal class
+# Handle PostgreSQL scheme if needed (DigitalOcean often provides 'postgres://')
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+if not SQLALCHEMY_DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable not set")
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+# If using SQLite locally for testing, you might need conditional logic,
+# but for deployment, the DATABASE_URL will be PostgreSQL.
+# Example for local SQLite fallback (optional):
+# engine = create_engine(
+#     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} # Only needed for SQLite
+# )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base class
 Base = declarative_base()
-
-# Function to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()

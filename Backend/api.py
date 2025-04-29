@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Tuple, Dict
 import json
 import logging
+import os
 from jose import jwt
 from passlib.context import CryptContext
 import base64
@@ -25,10 +26,14 @@ logger = logging.getLogger("api")
 # Create FastAPI app
 app = FastAPI()
 
-# Configure CORS - IMPORTANT!
+# Get allowed origins from environment variable, split by comma if multiple
+# Default to localhost:3000 for local dev if variable not set
+origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Your frontend URL
+    allow_origins=origins, # Use the origins list
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*", "Authorization"],
