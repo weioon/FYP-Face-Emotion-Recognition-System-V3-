@@ -11,13 +11,16 @@ const Login = ({ setIsAuthenticated }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    // Define apiUrl using the environment variable
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Fallback for safety
 
     try {
       const formData = new FormData();
       formData.append('username', username);
       formData.append('password', password);
 
-      const response = await axios.post('http://localhost:8000/token', formData);
+      // Use the apiUrl variable in the axios call
+      const response = await axios.post(`${apiUrl}/token`, formData);
       
       // Save token to localStorage
       localStorage.setItem('token', response.data.access_token);

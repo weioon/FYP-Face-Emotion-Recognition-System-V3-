@@ -22,6 +22,7 @@ const RecordingHistory = () => {
 
   useEffect(() => {
     const fetchRecordings = async () => {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -29,7 +30,8 @@ const RecordingHistory = () => {
           return;
         }
 
-        const response = await axios.get('http://localhost:8000/recording_history', {
+        // Use apiUrl here
+        const response = await axios.get(`${apiUrl}/recording_history`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -53,11 +55,12 @@ const RecordingHistory = () => {
 
   // Add this new function in the RecordingHistory component
   const deleteRecording = async (recordingId) => {
-    // Show confirmation dialog
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
     if (window.confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:8000/recording/${recordingId}`, {
+        // Use apiUrl here
+        await axios.delete(`${apiUrl}/recording/${recordingId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

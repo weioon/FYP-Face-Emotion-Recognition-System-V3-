@@ -17,8 +17,8 @@ const RecordingDetail = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Existing effect code to fetch recording details
     const fetchRecording = async () => {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -26,7 +26,8 @@ const RecordingDetail = () => {
           return;
         }
 
-        const response = await axios.get(`http://localhost:8000/recording/${id}`, {
+        // Use apiUrl here
+        const response = await axios.get(`${apiUrl}/recording/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

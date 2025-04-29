@@ -39,8 +39,9 @@ const WebcamCapture = () => {
   }, []);
 
   const startRecording = async () => {
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
     try {
-      await axios.post('http://localhost:8000/start_recording/');
+      await axios.post(`${apiUrl}/start_recording/`);
       setIsRecording(true);
       captureFrames();
     } catch (err) {
@@ -50,9 +51,10 @@ const WebcamCapture = () => {
   };
 
   const stopRecording = async () => {
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
     try {
       setIsRecording(false);
-      const response = await axios.post('http://localhost:8000/stop_recording/');
+      const response = await axios.post(`${apiUrl}/stop_recording/`);
       setResult(response.data);
     } catch (err) {
       console.error("Error stopping recording:", err);
@@ -66,6 +68,8 @@ const WebcamCapture = () => {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     const video = videoRef.current;
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+
     
     if (video) {
       canvas.width = video.videoWidth;
@@ -75,7 +79,7 @@ const WebcamCapture = () => {
       canvas.toBlob(async (blob) => {
         if (blob && isRecording) {
           try {
-            await axios.post('http://localhost:8000/process_frame/', blob, {
+            await axios.post(`${apiUrl}/process_frame/`, blob, {
               headers: {
                 'Content-Type': 'application/octet-stream'
               }

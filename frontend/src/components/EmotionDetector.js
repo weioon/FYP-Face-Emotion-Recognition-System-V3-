@@ -16,7 +16,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
   const [webcamActive, setWebcamActive] = useState(false); // Track webcam state explicitly
 
   // Capture a frame from the webcam
-  const captureFrame = async () => { // Removed isRecordingMode parameter
+  const captureFrame = async () => {
     // Only capture if webcam is available
     if (!webcamRef.current || !webcamRef.current.video || webcamRef.current.video.readyState < 3) {
       // setDebugInfo('Capture skipped: Webcam not ready.');
@@ -29,9 +29,12 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
       return;
     }
 
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+
     try {
       const imageData = screenshot.split(',')[1];
-      const response = await axios.post('http://localhost:8000/detect_emotion',
+      // Use apiUrl here
+      const response = await axios.post(`${apiUrl}/detect_emotion`,
         { image: imageData },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -56,14 +59,16 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
   const handleDetectionToggle = async () => {
     setButtonLock(true);
     setDebugInfo('Processing request...'); // Give immediate feedback
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
 
     if (isRecording) {
-      // Stop recording, analysis, and camera
+      // Stop recording
       try {
         clearInterval(captureIntervalRef.current);
         captureIntervalRef.current = null;
 
-        const response = await axios.post('http://localhost:8000/stop_recording/');
+        // Use apiUrl here
+        const response = await axios.post(`${apiUrl}/stop_recording/`);
         setAnalysisResults(response.data); // Update dashboard with results
         setIsRecording(false);
         setWebcamActive(false); // Deactivate webcam component
@@ -90,12 +95,13 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         return;
       }
     } else {
-      // Start camera and recording
+      // Start recording
       try {
         setWebcamActive(true);
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        await axios.post('http://localhost:8000/start_recording/');
+        // Use apiUrl here
+        await axios.post(`${apiUrl}/start_recording/`);
         setIsRecording(true);
 
         // Start sending frames frequently
@@ -130,13 +136,15 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     setImageResults(null); // Clear previous image results
     setIsProcessingImage(true);
     setDebugInfo('Processing uploaded image...');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
 
     try {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Use apiUrl here
       const response = await axios.post(
-        'http://localhost:8000/detect_emotion_from_image',
+        `${apiUrl}/detect_emotion_from_image`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );

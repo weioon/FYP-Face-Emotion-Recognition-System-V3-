@@ -23,11 +23,16 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/register', {
-        username,
-        email,
-        password
-      });
+      // Define apiUrl using the environment variable
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Fallback for safety
+
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('email', email);
+      formData.append('password', password);
+
+      // Use the apiUrl variable in the axios call
+      const response = await axios.post(`${apiUrl}/register`, formData);
       
       console.log("Registration successful:", response.data);
       // Redirect to login page after successful registration

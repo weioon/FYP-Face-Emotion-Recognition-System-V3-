@@ -4,15 +4,16 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict # Make sure Optional is imported
 import json
 import logging
 import os
-from jose import jwt
+from dotenv import load_dotenv # Make sure load_dotenv is called if you use a .env locally
+from jose import JWTError, jwt # Add jwt here
 from passlib.context import CryptContext
-import base64
-import numpy as np
-import cv2
+import json
+
+load_dotenv() # Load environment variables from .env file if present
 
 # Import your modules
 from db import get_db, engine, Base
@@ -39,13 +40,13 @@ app.add_middleware(
     allow_headers=["*", "Authorization"],
 )
 
-# JWT settings
-SECRET_KEY = "your-secret-key"  # In production, use a secure secret key
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# JWT settings - Read from environment variables
+SECRET_KEY = os.getenv("SECRET_KEY", "a-default-secret-key-for-local-dev-only") # Provide a default ONLY for local dev if needed
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")) # Default to 60 minutes
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # This line should now work
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -71,9 +72,14 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+# Helper function to create access token
+# Change 'timedelta | None' to 'Optional[timedelta]'
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) # Use env var
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
