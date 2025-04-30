@@ -6,12 +6,16 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple, Dict # Make sure Optional is imported
 import json
-import logging
 import os
 from dotenv import load_dotenv # Make sure load_dotenv is called if you use a .env locally
 from jose import JWTError, jwt # Add jwt here
 from passlib.context import CryptContext
 import json
+from fastapi.staticfiles import StaticFiles
+import os # Make sure os is imported
+import logging # Make sure logging is imported
+
+logger = logging.getLogger("api") # Ensure logger is defined
 
 load_dotenv() # Load environment variables from .env file if present
 
@@ -22,7 +26,6 @@ from realtime_emotion import RealtimeEmotionDetector
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("api")
 
 # Create FastAPI app
 app = FastAPI()
@@ -115,7 +118,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
 
 # Authentication endpoints
-@app.post("/register")
+@app.post("/api/register")
 async def register_user(user: UserRegister, db: Session = Depends(get_db)):
     logger.info(f"Registration request received for: {user.username}")
     
@@ -137,7 +140,7 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
     
     return {"message": "User registered successfully"}
 
-@app.post("/token")
+@app.post("/api/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
@@ -155,7 +158,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 # Your existing endpoints with authentication
-@app.post("/start_recording/")
+@app.post("/api/start_recording/")
 async def start_recording(current_user: User = Depends(get_current_user)):
     try:
         logger.info(f"Starting recording for user {current_user.username}")
@@ -165,7 +168,7 @@ async def start_recording(current_user: User = Depends(get_current_user)):
         logger.error(f"Error starting recording: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/stop_recording/")
+@app.post("/api/stop_recording/")
 async def stop_recording(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         logger.info(f"Stopping recording for user {current_user.username}")
@@ -192,7 +195,7 @@ async def stop_recording(current_user: User = Depends(get_current_user), db: Ses
         raise HTTPException(status_code=500, detail=str(e))
 
 # Recording history endpoints
-@app.get("/recording_history")
+@app.get("/api/recording_history")
 async def get_recording_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     recordings = db.query(Recording).filter(Recording.user_id == current_user.id).all()
     
@@ -206,7 +209,7 @@ async def get_recording_history(current_user: User = Depends(get_current_user), 
         
     return results
 
-@app.get("/recording/{recording_id}")
+@app.get("/api/recording/{recording_id}")
 async def get_recording(recording_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     recording = db.query(Recording).filter(
         Recording.id == recording_id, 
@@ -222,7 +225,7 @@ async def get_recording(recording_id: int, current_user: User = Depends(get_curr
         "analysis_data": json.loads(recording.analysis_data)
     }
 
-@app.delete("/recording/{recording_id}")
+@app.delete("/api/recording/{recording_id}")
 async def delete_recording(recording_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     recording = db.query(Recording).filter(
         Recording.id == recording_id, 
@@ -253,7 +256,7 @@ class FaceEmotion(BaseModel):
     dominant_emotion: str
     emotion_scores: Dict[str, float]
 
-@app.post("/detect_emotion")
+@app.post("/api/detect_emotion")
 async def detect_emotion(request: ImageRequest):
     try:
         # Decode the base64 image
@@ -296,7 +299,7 @@ import cv2
 import numpy as np
 
 # Add this new endpoint alongside your other endpoints
-@app.post("/detect_emotion_from_image")
+@app.post("/api/detect_emotion_from_image")
 async def detect_emotion_from_image(file: UploadFile = File(...)):
     try:
         # Read the image file
@@ -318,3 +321,19 @@ async def detect_emotion_from_image(file: UploadFile = File(...)):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
+# --- API Routes ---
+# IMPORTANT: Mount all your existing API routes *before* mounting the static files
+# Example: app.include_router(your_api_router, prefix="/api")
+# OR define individual routes like @app.post("/token"), @app.post("/register"), etc.
+# Make sure all API endpoints start with a prefix like /api/ or /v1/ if you mount static files at root '/'
+
+# --- Mount Static Files (React Frontend Build) ---
+# Conditionally mount static files only if the directory exists
+# This allows running locally without the 'static' folder crashing the app
+static_dir_path = "static" # Relative path from where api.py runs
+if os.path.isdir(static_dir_path):
+    app.mount("/", StaticFiles(directory=static_dir_path, html=True), name="static")
+    logger.info(f"Serving static files from directory: {static_dir_path}")
+else:
+    logger.warning(f"Static files directory '{static_dir_path}' not found. Frontend will not be served by this instance (normal for local dev without frontend build).")

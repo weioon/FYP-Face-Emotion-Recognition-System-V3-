@@ -12,7 +12,7 @@ const Login = ({ setIsAuthenticated }) => {
     e.preventDefault();
     setError('');
     // Define apiUrl using the environment variable
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Fallback for safety
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
     try {
       const formData = new FormData();
