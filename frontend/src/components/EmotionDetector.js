@@ -27,9 +27,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     if (!screenshot) {
       // setDebugInfo('Failed to get screenshot'); // Reduce noise
       return;
-    }
-
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line    
+    }    const apiUrl = process.env.REACT_APP_API_URL; // Use environment variable without fallback   
     try {
       const imageData = screenshot.split(',')[1];
       // Use apiUrl here with /api/ prefix
@@ -53,12 +51,11 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
       setDebugInfo(`Frame capture error: ${err.message}`);
     }
   };
-
   // Renamed and updated function to handle both camera and recording
   const handleDetectionToggle = async () => {
     setButtonLock(true);
     setDebugInfo('Processing request...'); // Give immediate feedback
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+    const apiUrl = process.env.REACT_APP_API_URL; // Use environment variable without fallback
 
     if (isRecording) {
       // Stop recording
