@@ -15,8 +15,8 @@ services:
       # - ./evaluation_model.py:/app/evaluation_model.py
     env_file:
       - ./Backend/.env # Load backend environment variables
-    # Add command if not specified in the root Dockerfile
-    # command: uvicorn Backend.api:app --host 0.0.0.0 --port 8000 --reload # Use --reload for dev
+    # Ensure the command uses port 8000 if uncommented, or rely on Dockerfile CMD
+    command: uvicorn Backend.api:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     build:
