@@ -13,9 +13,6 @@ RUN npm run build
 # Stage 2: Serve the static files with Nginx
 FROM nginx:1.25-alpine
 
-# Install openssl
-RUN apk add --no-cache openssl
-
 # Copy the certificate generation script and run it
 COPY generate-cert.sh /generate-cert.sh
 RUN chmod +x /generate-cert.sh \
