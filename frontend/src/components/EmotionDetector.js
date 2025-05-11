@@ -29,7 +29,8 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
       return;
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line    try {
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line    
+    try {
       const imageData = screenshot.split(',')[1];
       // Use apiUrl here with /api/ prefix
       const response = await axios.post(`${apiUrl}/api/detect_emotion`,
