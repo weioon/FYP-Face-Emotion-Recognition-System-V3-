@@ -10,3 +10,4 @@ ultralytics
 deepface
 psycopg2-binary
 python-dotenv
+tf-keras
