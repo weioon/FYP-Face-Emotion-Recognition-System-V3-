@@ -33,12 +33,8 @@ COPY ./crontab.txt /etc/crontabs/root
 # Create necessary directories for Certbot
 RUN mkdir -p /certbot/conf /certbot/www
 
-# Initial certificate script
-COPY ./init-cert.sh /usr/local/bin/init-cert.sh
-RUN chmod +x /usr/local/bin/init-cert.sh
-
 # Set working directory
 WORKDIR /
 
-# Run initial certificate acquisition, then start cron
-CMD ["/bin/sh", "-c", "/usr/local/bin/init-cert.sh && crond -f -d 8 & tail -f /var/log/crontab.log"]
+# Run crond in the foreground and tail the logs
+CMD ["sh", "-c", "crond -f -d 8 & tail -f /var/log/crontab.log"]
