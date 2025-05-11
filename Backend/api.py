@@ -13,7 +13,7 @@ from passlib.context import CryptContext
 import json
 from fastapi.staticfiles import StaticFiles
 import os # Make sure os is imported
-import logging # Make Sure logging is imported
+import logging # Make sure logging is imported
 
 logger = logging.getLogger("api") # Ensure logger is defined
 
@@ -266,23 +266,6 @@ import numpy as np
 import cv2
 from typing import Optional, List, Tuple, Dict
 
-# Helper function to convert NumPy types to Python native types
-def convert_to_python_types(data):
-    if isinstance(data, list):
-        return [convert_to_python_types(item) for item in data]
-    elif isinstance(data, dict):
-        return {key: convert_to_python_types(value) for key, value in data.items()}
-    elif isinstance(data, np.integer):
-        return int(data)
-    elif isinstance(data, np.floating):
-        return float(data)
-    elif isinstance(data, np.ndarray):
-        return data.tolist()
-    # Add other type conversions if necessary, e.g., for specific custom objects
-    # elif hasattr(data, 'to_dict'): # Example for custom objects
-    #     return data.to_dict()
-    return data
-
 # Create data models for the request/response
 class ImageRequest(BaseModel):
     image: str  # Base64 encoded image
@@ -293,56 +276,40 @@ class FaceEmotion(BaseModel):
     emotion_scores: Dict[str, float]
 
 @app.post("/api/detect_emotion")
-async def detect_emotion(request: ImageRequest) -> Dict: # Explicitly type hint return
+async def detect_emotion(request: ImageRequest):
     try:
         # Decode the base64 image
         image_data = base64.b64decode(request.image)
         nparr = np.frombuffer(image_data, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        if frame is None:
-            logger.error("Failed to decode image from base64 string in /api/detect_emotion.")
-            raise HTTPException(status_code=400, detail="Invalid image data provided.")
-
-        # --- Temporary Debugging: Save frame ---\r
-        # debug_save_path = "debug_frame.jpg"\r
-        # cv2.imwrite(debug_save_path, frame)\r
-        # logger.debug(f"Debug: Saved incoming frame to {debug_save_path}")\r
-        # --- End Debugging ---\r
+        # --- Temporary Debugging: Save frame ---
+        debug_save_path = "debug_frame.jpg"
+        cv2.imwrite(debug_save_path, frame)
+        print(f"Debug: Saved incoming frame to {debug_save_path}")
+        # --- End Debugging ---
 
         # Process the frame
-        detector.process_frame(frame) # This call might populate detector.current_emotion_data
+        frame_with_emotions = detector.process_frame(frame)
         
         # Get emotion data
-        raw_emotion_data = detector.current_emotion_data if hasattr(detector, "current_emotion_data") else []
+        emotion_data = detector.current_emotion_data if hasattr(detector, "current_emotion_data") else []
         
-        # Convert NumPy types to Python native types
-        serializable_emotion_data = convert_to_python_types(raw_emotion_data)
-        
+        # Add a debug message if recording
         is_recording = detector.recording if hasattr(detector, "recording") else False
-        # if is_recording:
-        #     # Count total records across all tracked faces
-        #     total_records = sum(len(records) for records in detector.face_records.values()) if hasattr(detector, "face_records") else 0
-        #     logger.debug(f"Processed frame during recording. Total records: {total_records}")
+        if is_recording:
+            # Count total records across all tracked faces
+            total_records = sum(len(records) for records in detector.face_records.values()) if hasattr(detector, "face_records") else 0
+            print(f"Processed frame during recording. Total records: {total_records}")
         
-        # Optional: Validate with Pydantic model if your FaceEmotion model matches the structure
-        # try:
-        #     validated_emotions = [FaceEmotion(**item) for item in serializable_emotion_data]
-        # except Exception as val_error:
-        #     logger.warning(f"Pydantic validation failed for emotion data: {val_error}")
-            # Decide if you want to raise an error or return unvalidated data
-
         return {
             "status": "success",
-            "emotions": serializable_emotion_data, # Use the cleaned data
+            "emotions": emotion_data,
             "is_recording": is_recording
         }
-    except HTTPException as e:
-        # Re-raise HTTPExceptions directly
-        raise e
     except Exception as e:
-        logger.error(f"Error in detect_emotion endpoint: {str(e)}", exc_info=True) # Log full traceback
-        raise HTTPException(status_code=500, detail=f"Internal server error while detecting emotion: {str(e)}")
+        print(f"Error in detect_emotion: {str(e)}")
+        # Rest of the error handling code...
 
 # Add these imports if not already present
 from fastapi import File, UploadFile
@@ -350,8 +317,9 @@ import io
 import cv2
 import numpy as np
 
+# Add this new endpoint alongside your other endpoints
 @app.post("/api/detect_emotion_from_image")
-async def detect_emotion_from_image(file: UploadFile = File(...)) -> Dict: # Explicitly type hint
+async def detect_emotion_from_image(file: UploadFile = File(...)):
     try:
         # Read the image file
         contents = await file.read()
@@ -359,31 +327,18 @@ async def detect_emotion_from_image(file: UploadFile = File(...)) -> Dict: # Exp
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if image is None:
-            logger.error("Failed to decode image from uploaded file in /api/detect_emotion_from_image.")
-            raise HTTPException(status_code=400, detail="Invalid image file uploaded.")
+            raise HTTPException(status_code=400, detail="Invalid image file")
         
         # Process the image and detect faces/emotions using the detector
-        raw_processed_data = detector.process_uploaded_image(image)
+        processed_data = detector.process_uploaded_image(image)
         
-        # Convert NumPy types to Python native types
-        serializable_processed_data = convert_to_python_types(raw_processed_data)
-
-        # Optional: Validate with Pydantic model
-        # try:
-        #     validated_emotions = [FaceEmotion(**item) for item in serializable_processed_data]
-        # except Exception as val_error:
-        #     logger.warning(f"Pydantic validation failed for uploaded image emotion data: {val_error}")
-
         return {
             "status": "success",
-            "emotions": serializable_processed_data # Use the cleaned data
+            "emotions": processed_data
         }
-    except HTTPException as e:
-        raise e
     except Exception as e:
-        # import traceback # Already imported if needed, or use logger
-        # traceback.print_exc()
-        logger.error(f"Error processing uploaded image: {str(e)}", exc_info=True)
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
 # --- API Routes ---

@@ -129,8 +129,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Use apiUrl here
-        // Forcing relative path directly for testing
-        await axios.post(`/api/start_recording/`);
+        await axios.post(`${apiUrl}/api/start_recording/`);
         setIsRecording(true);
 
         // Start sending frames frequently
@@ -165,7 +164,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     setImageResults(null); // Clear previous image results
     setIsProcessingImage(true);
     setDebugInfo('Processing uploaded image...');
-    const apiUrl = process.env.REACT_APP_API_URL; // This one was likely already correct
+    const apiUrl = process.env.REACT_APP_API_URL;
 
     try {
       const formData = new FormData();
