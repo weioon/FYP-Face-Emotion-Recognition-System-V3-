@@ -20,7 +20,7 @@ const Login = ({ setIsAuthenticated }) => {
       formData.append('password', password);
 
       // Use the apiUrl variable in the axios call
-      const response = await axios.post(`${apiUrl}/token`, formData);
+      const response = await axios.post(`${apiUrl}/api/token`, formData);
       
       // Save token to localStorage
       localStorage.setItem('token', response.data.access_token);

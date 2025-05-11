@@ -52,7 +52,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") # This line should now work
 
 # OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
 # Initialize detector
 logger.info("Initializing LightweightDetector")
