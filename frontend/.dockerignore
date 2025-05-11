@@ -1,0 +1,26 @@
+# Node modules - These are installed during the build, don't copy them
+node_modules
+
+# Build output directory - This is created during the build
+build
+
+# Environment files - Should be handled by build args or runtime env vars
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Git / VSCode
+.git
+.vscode
+
+# Logs
+*.log
+
+# Test reports
+coverage
+
+# Editor files
+.DS_Store
+Thumbs.db

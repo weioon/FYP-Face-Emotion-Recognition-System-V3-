@@ -1,0 +1,35 @@
+# filepath: docker-compose.yml
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile # Assumes root Dockerfile is for the backend
+    ports:
+      - "8000:8000" # Expose backend port
+    volumes:
+      # Mount backend code and necessary files/models
+      - ./Backend:/app/Backend
+      - ./yolov8n.pt:/app/yolov8n.pt
+      # Add other necessary root files/models if backend uses them
+      # - ./evaluation_model.py:/app/evaluation_model.py
+    env_file:
+      - ./Backend/.env # Load backend environment variables
+    # Add command if not specified in the root Dockerfile
+    # command: uvicorn Backend.api:app --host 0.0.0.0 --port 8000 --reload # Use --reload for dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Pass the backend service URL during build
+        REACT_APP_API_URL: http://backend:8000
+    ports:
+      - "3000:80" # Map host port 3000 to Nginx container port 80
+    depends_on:
+      - backend # Ensure backend starts before frontend
+
+# Define volumes if needed (e.g., for persistent DB data if not using SQLite in volume mount)
+# volumes:
+#   db_data:
