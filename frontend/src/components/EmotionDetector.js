@@ -101,7 +101,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // Use apiUrl here
-        await axios.post(`${apiUrl}/start_recording/`);
+        await axios.post(`${apiUrl}/api/start_recording/`);
         setIsRecording(true);
 
         // Start sending frames frequently
