@@ -14,6 +14,6 @@ RUN npm run build
 FROM nginx:1.25-alpine
 COPY --from=builder /app/build /usr/share/nginx/html
 # Copy a custom nginx config if needed, otherwise default works for SPA
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
