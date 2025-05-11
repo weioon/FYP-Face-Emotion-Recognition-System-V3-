@@ -12,8 +12,28 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
   const [debugInfo, setDebugInfo] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageResults, setImageResults] = useState(null);
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [webcamActive, setWebcamActive] = useState(false); // Track webcam state explicitly
+  const [isProcessingImage, setIsProcessingImage] = useState(false);  const [webcamActive, setWebcamActive] = useState(false); // Track webcam state explicitly
+  const [hasCameraPermission, setHasCameraPermission] = useState(null); // Track camera permission status
+
+  // Check for camera permissions on component mount
+  useEffect(() => {
+    const checkCameraPermission = async () => {
+      try {
+        // This will prompt for permission if not already granted
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // If we get here, permission was granted
+        setHasCameraPermission(true);
+        // Stop the stream after getting permission since we'll start it again when needed
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        setHasCameraPermission(false);
+        setDebugInfo(`Camera permission denied: ${err.message}`);
+      }
+    };
+
+    checkCameraPermission();
+  }, []);
 
   // Capture a frame from the webcam
   const captureFrame = async () => {
@@ -87,10 +107,24 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
         setDebugInfo(`Error stopping detection: ${err.response?.data?.detail || err.message}`);
         setTimeout(() => setButtonLock(false), 2000);
         return;
-      }
-    } else {
+      }    } else {
       // Start recording
       try {
+        // Check if we have camera permission
+        if (hasCameraPermission === false) {
+          // If permission was previously denied, try again
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+            setHasCameraPermission(true);
+          } catch (err) {
+            console.error("Camera permission error:", err);
+            setDebugInfo(`Cannot start detection: Camera access denied. Please enable camera access in your browser settings.`);
+            setTimeout(() => setButtonLock(false), 2000);
+            return;
+          }
+        }
+
         setWebcamActive(true);
         await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -195,10 +229,11 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
             mirrored={true}
             onUserMedia={() => setDebugInfo('Webcam ready.')}
             onUserMediaError={(err) => setDebugInfo(`Webcam Error: ${err.name}`)}
-          />
-        ) : (
+          />        ) : (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '300px', color: 'var(--neutral-light)' }}>
-            Camera is off
+            {hasCameraPermission === false ? 
+              'Camera permission denied. Please enable camera access in your browser settings.' : 
+              'Camera is off'}
           </div>
         )}
 
