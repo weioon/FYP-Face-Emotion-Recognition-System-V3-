@@ -6,23 +6,16 @@ from dotenv import load_dotenv
 
 load_dotenv() # Keep this if you use a .env file locally
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL") # Read from environment variable
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Default to SQLite if DATABASE_URL is not set
 if not SQLALCHEMY_DATABASE_URL:
-    print("DATABASE_URL not set, defaulting to SQLite: ./sql_app.db")
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db" # Default SQLite path
+    raise ValueError("DATABASE_URL environment variable is not set. Please configure it in Backend/.env")
 
-# Handle PostgreSQL scheme if needed
-if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+# Ensure the scheme is postgresql for SQLAlchemy
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} # Needed for SQLite
-    )
-else:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
