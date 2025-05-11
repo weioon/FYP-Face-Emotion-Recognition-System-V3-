@@ -24,7 +24,7 @@ const Register = () => {
 
     try {
       // Define apiUrl using the environment variable
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Fallback for safety
+      const apiUrl = process.env.REACT_APP_API_URL;
 
       const payload = {
         username: username,

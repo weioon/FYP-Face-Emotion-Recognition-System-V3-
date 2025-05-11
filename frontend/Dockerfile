@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 # Set the API URL build argument (can be overridden in docker-compose)
-ARG REACT_APP_API_URL=http://localhost:8000
+ARG REACT_APP_API_URL=""
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 RUN npm run build
 
