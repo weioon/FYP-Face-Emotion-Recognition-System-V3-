@@ -16,7 +16,11 @@ FROM nginx:1.25-alpine
 # Copy the certificate generation script and run it
 COPY generate-cert.sh /generate-cert.sh
 RUN chmod +x /generate-cert.sh \
-    && /generate-cert.sh
+    && /generate-cert.sh \
+    && if [ ! -f /etc/nginx/ssl/nginx-selfsigned.crt ] || [ ! -f /etc/nginx/ssl/nginx-selfsigned.key ]; then \
+        echo "Certificate files not found after running generate-cert.sh" >&2; \
+        exit 1; \
+    fi
 
 COPY --from=builder /app/build /usr/share/nginx/html
 # Copy a custom nginx config if needed, otherwise default works for SPA
