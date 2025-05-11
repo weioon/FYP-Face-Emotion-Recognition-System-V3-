@@ -13,7 +13,18 @@ RUN npm run build
 # Stage 2: Serve the static files with Nginx
 FROM nginx:1.25-alpine
 COPY --from=builder /app/build /usr/share/nginx/html
-# Copy a custom nginx config if needed, otherwise default works for SPA
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Copy the entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Install required packages for SSL setup
+RUN apk add --no-cache openssl bash
+
+# Create directories for certbot
+RUN mkdir -p /var/www/certbot
+
+# Remove the default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
+
+EXPOSE 80 443
+ENTRYPOINT ["/entrypoint.sh"]
