@@ -8,20 +8,21 @@ load_dotenv() # Keep this if you use a .env file locally
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL") # Read from environment variable
 
-# Handle PostgreSQL scheme if needed (DigitalOcean often provides 'postgres://')
+# Default to SQLite if DATABASE_URL is not set
+if not SQLALCHEMY_DATABASE_URL:
+    print("DATABASE_URL not set, defaulting to SQLite: ./sql_app.db")
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db" # Default SQLite path
+
+# Handle PostgreSQL scheme if needed
 if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-if not SQLALCHEMY_DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable not set") # This line raises the error
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-# If using SQLite locally for testing, you might need conditional logic,
-# but for deployment, the DATABASE_URL will be PostgreSQL.
-# Example for local SQLite fallback (optional):
-# engine = create_engine(
-#     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} # Only needed for SQLite
-# )
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} # Needed for SQLite
+    )
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
