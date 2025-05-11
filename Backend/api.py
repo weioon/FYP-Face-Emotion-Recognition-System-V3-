@@ -142,13 +142,32 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/api/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    logger.info(f"Login attempt for username: {form_data.username}") # Log username
+    # Consider logging password length or a hash for debugging, but NOT the plain password in production
+    # logger.info(f"Password received (length): {len(form_data.password)}")
+
     user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
+
+    if not user:
+        logger.warning(f"Login failed: User '{form_data.username}' not found.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    if not verify_password(form_data.password, user.password_hash):
+        logger.warning(f"Login failed: Password verification failed for user '{form_data.username}'.")
+        # You might want to log the received password's hash vs stored hash for deeper debugging if issues persist
+        # received_hash_attempt = get_password_hash(form_data.password) # Don't log this directly if sensitive
+        # logger.debug(f"Stored hash: {user.password_hash}, Attempted password (if hashed for compare): {received_hash_attempt}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    logger.info(f"User '{form_data.username}' authenticated successfully.")
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

@@ -136,7 +136,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     setImageResults(null); // Clear previous image results
     setIsProcessingImage(true);
     setDebugInfo('Processing uploaded image...');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+    const apiUrl = process.env.REACT_APP_API_URL;
 
     try {
       const formData = new FormData();
@@ -144,7 +144,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
 
       // Use apiUrl here
       const response = await axios.post(
-        `${apiUrl}/detect_emotion_from_image`,
+        `${apiUrl}/api/detect_emotion_from_image`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
