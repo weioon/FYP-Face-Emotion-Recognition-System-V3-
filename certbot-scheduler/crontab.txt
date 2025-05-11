@@ -1,0 +1,6 @@
+# filepath: c:\Users\weioo\OneDrive - UNIVERSITY UTARA MALAYSIA\Desktop\FYP-Face-Emotion-Recognition-System-V3-\certbot-scheduler\crontab.txt
+# Run certificate renewal check twice daily (recommended by Let's Encrypt)
+# At 2:15 AM and 2:15 PM server time
+15 2,14 * * * /usr/local/bin/renew_certs.sh >> /var/log/crontab.log 2>&1
+
+# Empty line at the end is required for cron to work correctly

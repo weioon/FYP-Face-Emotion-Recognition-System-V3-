@@ -29,9 +29,24 @@ services:
         REACT_APP_API_URL: ""
     ports:
       - "80:80"   # Map host port 80 to Nginx container port 80
-      - "443:80"  # Map host port 443 to Nginx container port 80 (for potential HTTPS later)
+      - "443:443"  # Map host port 443 to Nginx container port 443 for HTTPS
+    volumes:
+      - ./certbot/www:/var/www/certbot:ro  # For ACME challenge files (read-only)
+      - ./certbot/conf:/etc/letsencrypt:ro # For TLS certificates (read-only)
     depends_on:
       - backend # Ensure backend starts before frontend
+
+  certbot-scheduler:
+    build:
+      context: ./certbot-scheduler
+      dockerfile: Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # To allow executing docker commands
+      - ./certbot/conf:/certbot/conf  # Mount certbot configuration directory
+      - ./certbot/www:/certbot/www    # Mount certbot webroot for challenges
+    depends_on:
+      - frontend
+    restart: unless-stopped
 
   db:
     image: postgres:15-alpine
