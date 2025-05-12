@@ -13,7 +13,7 @@ from passlib.context import CryptContext
 import json
 from fastapi.staticfiles import StaticFiles
 import os # Make sure os is imported
-import logging # Make sure logging is imported
+import logging # Make Sure logging is imported
 
 logger = logging.getLogger("api") # Ensure logger is defined
 
@@ -266,6 +266,23 @@ import numpy as np
 import cv2
 from typing import Optional, List, Tuple, Dict
 
+# Helper to convert numpy types to native Python types
+# Ensure this function is available before endpoints
+
+def convert_numpy_types(obj):
+    if isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy_types(v) for v in obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.generic):
+        return obj.item()
+    else:
+        return obj
+
 # Create data models for the request/response
 class ImageRequest(BaseModel):
     image: str  # Base64 encoded image
@@ -280,9 +297,11 @@ async def detect_emotion(request: ImageRequest):
     try:
         # Decode the base64 image
         image_data = base64.b64decode(request.image)
+        print(f"Debug: Received base64 image length: {len(request.image)} characters")
         nparr = np.frombuffer(image_data, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
+        print(f"Debug: Decoded frame type: {type(frame)}, shape: {frame.shape if frame is not None else 'None'}")
+        
         # --- Temporary Debugging: Save frame ---
         debug_save_path = "debug_frame.jpg"
         cv2.imwrite(debug_save_path, frame)
