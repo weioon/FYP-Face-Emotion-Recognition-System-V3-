@@ -22,7 +22,8 @@ const RecordingHistory = () => {
 
   useEffect(() => {
     const fetchRecordings = async () => {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+      const apiPrefix = process.env.REACT_APP_API_URL === undefined ? "" : process.env.REACT_APP_API_URL;
+      const requestUrl = `${apiPrefix}/api/recording_history`;
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -30,8 +31,7 @@ const RecordingHistory = () => {
           return;
         }
 
-        // Use apiUrl here
-        const response = await axios.get(`${apiUrl}/recording_history`, {
+        const response = await axios.get(requestUrl, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -43,6 +43,11 @@ const RecordingHistory = () => {
         setError('Failed to fetch recording history');
         setLoading(false);
         console.error('Error fetching recordings:', error);
+        if (error.config && error.config.url) {
+          console.error('Attempted URL:', error.config.url);
+        } else {
+          console.error('Attempted URL (constructed):', requestUrl);
+        }
       }
     };
 
@@ -55,29 +60,45 @@ const RecordingHistory = () => {
 
   // Add this new function in the RecordingHistory component
   const deleteRecording = async (recordingId) => {
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+    const apiPrefix = process.env.REACT_APP_API_URL === undefined ? "" : process.env.REACT_APP_API_URL;
+    const requestUrl = `${apiPrefix}/api/recording/${recordingId}`;
     if (window.confirm("Are you sure you want to delete this recording? This action cannot be undone.")) {
       try {
         const token = localStorage.getItem('token');
-        // Use apiUrl here
-        await axios.delete(`${apiUrl}/recording/${recordingId}`, {
+        await axios.delete(requestUrl, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         
-        // Remove the deleted recording from state
-        setRecordings(prevRecordings => 
-          prevRecordings.filter(recording => recording.id !== recordingId)
-        );
+        // Remove the deleted recording from state and adjust pagination
+        setRecordings(prevRecordings => {
+          const updatedRecordings = prevRecordings.filter(recording => recording.id !== recordingId);
+          
+          // Recalculate current page's items based on updated recordings
+          const newIndexOfLastRecord = currentPage * recordsPerPage;
+          const newIndexOfFirstRecord = newIndexOfLastRecord - recordsPerPage;
+          // Ensure indices are not negative
+          const effectiveIndexOfFirstRecord = Math.max(0, newIndexOfFirstRecord);
+          
+          const newCurrentPageRecordings = updatedRecordings.slice(effectiveIndexOfFirstRecord, newIndexOfLastRecord);
+
+          if (newCurrentPageRecordings.length === 0 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+          } else if (updatedRecordings.length === 0) { // All recordings deleted
+            setCurrentPage(1);
+          }
+          return updatedRecordings;
+        });
         
-        // Reset to first page if current page becomes empty
-        if (currentRecordings.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
       } catch (error) {
         setError('Failed to delete recording');
         console.error('Error deleting recording:', error);
+        if (error.config && error.config.url) {
+          console.error('Attempted URL for delete:', error.config.url);
+        } else {
+          console.error('Attempted URL for delete (constructed):', requestUrl);
+        }
       }
     }
   };
