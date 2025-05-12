@@ -18,7 +18,8 @@ const RecordingDetail = () => {
 
   useEffect(() => {
     const fetchRecording = async () => {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000'; // Add this line
+      const apiPrefix = process.env.REACT_APP_API_URL === undefined ? "" : process.env.REACT_APP_API_URL;
+      const requestUrl = `${apiPrefix}/api/recording/${id}`;
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -26,8 +27,7 @@ const RecordingDetail = () => {
           return;
         }
 
-        // Use apiUrl here
-        const response = await axios.get(`${apiUrl}/recording/${id}`, {
+        const response = await axios.get(requestUrl, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -40,6 +40,11 @@ const RecordingDetail = () => {
         setError('Failed to fetch recording details');
         setLoading(false);
         console.error('Error fetching recording:', error);
+        if (error.config && error.config.url) {
+          console.error('Attempted URL:', error.config.url);
+        } else {
+          console.error('Attempted URL (constructed):', requestUrl);
+        }
       }
     };
 
