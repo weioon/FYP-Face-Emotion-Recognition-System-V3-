@@ -1,0 +1,81 @@
+# Ignore FER dataset
+FER dataset/
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.env
+.venv
+venv/
+ENV/
+env/
+ENV.bak/
+env.bak/
+
+# Node specific
+node_modules/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# Frontend build output
+frontend/build/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+*.dockerignore
+
+# IDE specific
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Debug files
+debug_frame.jpg
+
+# Model files (if you want to ignore them, uncomment)
+# *.pt
+# *.pth
+# *.h5
+# *.onnx
+
+# Certificates (if stored in repo and self-signed, consider if they should be ignored)
+# frontend/nginx-selfsigned.key
+# frontend/nginx-selfsigned.crt
+
+# pgAdmin data (if you map it to a local folder and don't want to commit)
+# pgadmin_data/
