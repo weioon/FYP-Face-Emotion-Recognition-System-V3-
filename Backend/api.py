@@ -346,24 +346,37 @@ import numpy as np
 @app.post("/api/detect_emotion_from_image")
 async def detect_emotion_from_image(file: UploadFile = File(...)):
     try:
-        # Read the image file
+        logger.info("detect_emotion_from_image: Reading file contents...")
         contents = await file.read()
+        logger.info(f"detect_emotion_from_image: File contents read, length: {len(contents)}")
+
+        logger.info("detect_emotion_from_image: Converting to numpy array...")
         nparr = np.frombuffer(contents, np.uint8)
+        logger.info("detect_emotion_from_image: Converted to numpy array.")
+
+        logger.info("detect_emotion_from_image: Decoding image with OpenCV...")
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if image is None:
+            logger.warning("detect_emotion_from_image: cv2.imdecode returned None. Invalid image file.")
             raise HTTPException(status_code=400, detail="Invalid image file")
+        logger.info(f"detect_emotion_from_image: Image decoded. Shape: {image.shape if image is not None else 'None'}")
         
-        # Process the image and detect faces/emotions using the detector
+        logger.info("detect_emotion_from_image: Calling detector.process_uploaded_image...")
         processed_data = detector.process_uploaded_image(image)
+        logger.info("detect_emotion_from_image: detector.process_uploaded_image returned.")
         
         return {
             "status": "success",
             "emotions": processed_data
         }
+    except HTTPException as he: # Re-raise HTTPExceptions to preserve status code and detail
+        logger.error(f"detect_emotion_from_image: HTTPException: {he.detail}")
+        raise he
     except Exception as e:
+        logger.error(f"detect_emotion_from_image: Unhandled exception: {str(e)}")
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc()) # Log the full traceback
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
 # --- API Routes ---
