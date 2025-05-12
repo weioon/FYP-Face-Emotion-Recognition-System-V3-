@@ -47,8 +47,7 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
     if (!screenshot) {
       // setDebugInfo('Failed to get screenshot'); // Reduce noise
       return;
-    }    const apiUrl = process.env.REACT_APP_API_URL; // Use environment variable without fallback
-    console.log('API URL used for detect_emotion:', apiUrl); // DEBUG: Log API URL
+    }    const apiUrl = process.env.REACT_APP_API_URL; // Use environment variable without fallback   
     try {
       const imageData = screenshot.split(',')[1];
       // Use apiUrl here with /api/ prefix
@@ -69,7 +68,6 @@ const EmotionDetector = ({ setAnalysisResults, isRecording, setIsRecording }) =>
 
     } catch (err) {
       console.error("Error capturing frame:", err);
-      console.log("Full error object during detect_emotion:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2)); // DEBUG: Log full error object
       setDebugInfo(`Frame capture error: ${err.message}`);
     }
   };
