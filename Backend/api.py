@@ -7,13 +7,31 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Tuple, Dict # Make sure Optional is imported
 import json
 import os
-from dotenv import load_dotenv # Make sure load_dotenv is called if you use a .env locally
+from dotenv import load_dotenv # Make Sure load_dotenv is called if you use a .env locally
 from jose import JWTError, jwt # Add jwt here
 from passlib.context import CryptContext
 import json
 from fastapi.staticfiles import StaticFiles
-import os # Make sure os is imported
+import os # Make Sure os is imported
 import logging # Make Sure logging is imported
+
+# Helper to convert numpy types to native Python types
+# This must be defined before any endpoint using it
+
+def convert_numpy_types(obj):
+    import numpy as _np
+    if isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy_types(v) for v in obj)
+    elif isinstance(obj, _np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, _np.generic):
+        return obj.item()
+    else:
+        return obj
 
 logger = logging.getLogger("api") # Ensure logger is defined
 
@@ -265,23 +283,6 @@ import base64
 import numpy as np
 import cv2
 from typing import Optional, List, Tuple, Dict
-
-# Helper to convert numpy types to native Python types
-# Ensure this function is available before endpoints
-
-def convert_numpy_types(obj):
-    if isinstance(obj, dict):
-        return {k: convert_numpy_types(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy_types(v) for v in obj]
-    elif isinstance(obj, tuple):
-        return tuple(convert_numpy_types(v) for v in obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, np.generic):
-        return obj.item()
-    else:
-        return obj
 
 # Create data models for the request/response
 class ImageRequest(BaseModel):
