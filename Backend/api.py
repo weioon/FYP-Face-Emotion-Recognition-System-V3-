@@ -302,14 +302,19 @@ async def detect_emotion(request: ImageRequest):
             total_records = sum(len(records) for records in detector.face_records.values()) if hasattr(detector, "face_records") else 0
             print(f"Processed frame during recording. Total records: {total_records}")
         
+        # Ensure all numpy types are converted before returning
+        cleaned_emotion_data = convert_numpy_types(emotion_data)
+
         return {
             "status": "success",
-            "emotions": emotion_data,
+            "emotions": cleaned_emotion_data,
             "is_recording": is_recording
         }
     except Exception as e:
-        print(f"Error in detect_emotion: {str(e)}")
-        # Rest of the error handling code...
+        import traceback
+        logger.error(f"Error in detect_emotion endpoint: {str(e)}")
+        logger.error(traceback.format_exc()) # Log the full traceback
+        raise HTTPException(status_code=500, detail=f"Internal server error in detect_emotion: {str(e)}")
 
 # Add these imports if not already present
 from fastapi import File, UploadFile
