@@ -366,9 +366,13 @@ async def detect_emotion_from_image(file: UploadFile = File(...)):
         processed_data = detector.process_uploaded_image(image)
         logger.info("detect_emotion_from_image: detector.process_uploaded_image returned.")
         
+        # Apply numpy type conversion to the processed data
+        cleaned_processed_data = convert_numpy_types(processed_data)
+        logger.info("detect_emotion_from_image: Applied convert_numpy_types to processed_data.")
+
         return {
             "status": "success",
-            "emotions": processed_data
+            "emotions": cleaned_processed_data # Return the cleaned data
         }
     except HTTPException as he: # Re-raise HTTPExceptions to preserve status code and detail
         logger.error(f"detect_emotion_from_image: HTTPException: {he.detail}")
